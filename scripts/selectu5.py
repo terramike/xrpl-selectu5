@@ -85,24 +85,48 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def validate_asset_url(e):
-    """Validate a recorded GitHub release-asset locator. Returns the URL."""
+    """Validate a recorded GitHub release-asset locator. Returns the URL.
+
+    The original string is checked before URL parsing: controls, embedded
+    whitespace, backslashes, and percent-encoded separators or dot
+    components are refused, and malformed values raise RegistryError.
+    """
     dist = e.get("distribution")
     if not isinstance(dist, dict):
         raise RegistryError("distribution must be an object")
     if dist.get("type") != "github_release_asset":
         raise RegistryError("distribution type is not supported")
-    if not COMMIT_RE.match(dist.get("source_commit") or ""):
+    source_commit = dist.get("source_commit")
+    if not isinstance(source_commit, str) or not COMMIT_RE.match(source_commit):
         raise RegistryError("distribution source_commit must be a full 40-char commit SHA")
-    if dist.get("source_commit") != e.get("ref"):
+    if source_commit != e.get("ref"):
         raise RegistryError("distribution source_commit must equal the pinned ref")
-    m = re.match(r"^https://github\.com/([^/]+)/([A-Za-z0-9._-]+)$", e.get("repo") or "")
+    repo = e.get("repo")
+    if not isinstance(repo, str):
+        raise RegistryError("repository is not an approved owner/repo pair")
+    m = re.match(r"^https://github\.com/([^/]+)/([A-Za-z0-9._-]+)$", repo)
     if not m or (m.group(1), m.group(2)) not in APPROVED_REPO_PAIRS:
         raise RegistryError("repository is not an approved owner/repo pair")
-    url = dist.get("asset_url") or ""
-    parsed = urllib.parse.urlparse(url)
+    url = dist.get("asset_url")
+    if not isinstance(url, str) or not url:
+        raise RegistryError("asset_url is not an approved GitHub release-asset URL")
+    if any(ord(c) < 0x20 or ord(c) == 0x7f for c in url) or any(c.isspace() for c in url) or "\\" in url:
+        raise RegistryError("asset_url contains controls, whitespace, or a backslash")
+    lowered = url.lower()
+    if "%2f" in lowered or "%5c" in lowered or "%00" in lowered:
+        raise RegistryError("asset_url contains an encoded separator or NUL")
+    raw_path = url.split("?", 1)[0].split("#", 1)[0]
+    decoded_segments = [urllib.parse.unquote(seg) for seg in raw_path.split("/")]
+    if any(seg in (".", "..") for seg in decoded_segments):
+        raise RegistryError("asset_url contains a dot path component")
+    try:
+        parsed = urllib.parse.urlparse(url)
+        port = parsed.port
+    except ValueError as exc:
+        raise RegistryError("asset_url is malformed") from exc
     am = re.match(r"^/([^/]+)/([A-Za-z0-9._-]+)/releases/download/([^/]+)/([^/]+)$", parsed.path or "")
     if (parsed.scheme != "https" or parsed.hostname != "github.com" or parsed.username or parsed.password
-            or parsed.port not in (None, 443) or parsed.query or parsed.fragment or not am):
+            or port not in (None, 443) or parsed.query or parsed.fragment or not am):
         raise RegistryError("asset_url is not an approved GitHub release-asset URL")
     if (am.group(1), am.group(2)) != (m.group(1), m.group(2)):
         raise RegistryError("asset_url repository does not match the catalog repository")
@@ -452,6 +476,8 @@ def validate_registry(reg):
                     raise RegistryError(f"{eid}: {exc}") from exc
                 if not COMMIT_RE.match(ref or "") or not SHA256_RE.match(digest or "") or not root:
                     raise RegistryError(f"{eid}: a distributed entry needs a pinned ref, artifact digest, and package root")
+        if e.get("distribution") is not None and kind != "skill":
+            raise RegistryError(f"{eid}: distribution records are allowed only on skill entries")
         perm = e.get("permissions")
         if not isinstance(perm, dict):
             raise RegistryError(f"{eid}: permissions must be an object")

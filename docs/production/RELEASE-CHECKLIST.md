@@ -108,3 +108,12 @@ Historical evidence in this repository does not claim results for a future commi
 - [ ] Record Mike's distribution repository, package contents, license, audience, and publication authority.
 - [ ] Prepare the exact pilot asset (S, D, package root) and later catalog commit C for Mike's review.
 - [ ] Complete actual artifact qualification on Linux and Windows (Stage 3).
+
+## PR #3 audit fixes
+
+- [x] Reject source symlinks/junctions/reparse points and verify containment before reading package files (external-sentinel regression test).
+- [x] Build release evidence from two independent clean exports with recorded S and build-tool versions; working-tree builds labeled development evidence.
+- [x] Reject malformed asset URLs (controls, encoded traversal, invalid ports, wrong types) before URL normalization.
+- [x] Enforce distribution records on skill entries only.
+- [x] Reject duplicate/colliding inventory paths and validate the finished ZIP with the installer archive validator.
+- [ ] Linux and Windows CI for the final PR #3 head (now including the new regression tests).

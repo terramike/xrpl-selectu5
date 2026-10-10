@@ -39,7 +39,7 @@ This handoff does not authorize them.
 - PR #2 merged: merge commit `3e0f488e60bfe085630f74eca2435e09ee666dba`; tested head `7593c76e45b40f127c360eb297090d03f80791be`; all four CI jobs passed (66 tests per platform, one platform-specific skip each).
 - Historical qualification evidence stays historical: `docs/production/ACCEPTANCE.md` and `docs/production/evidence.json` describe the PR #2 candidate, not the current installer code.
 - Historical artifact S: `7db6c62951b552d15fa13cc09e1f083f073ca92a`; digest D and catalog C remain unqualified.
-- Current branch: `codex/selectu5-fixed-asset-transport` (Stage 1–2: fixed-asset design, deterministic packaging, catalog/plan binding, transport support; gate disabled).
+- Current branch: `codex/selectu5-fixed-asset-transport`, PR #3. Initial head `925c8e3097d6` passed all four CI jobs (73 tests/platform). Audit fixes followed before merge: source symlink/reparse refusal with containment, clean-export rebuild evidence, malformed asset-URL rejection, skill-only distribution, duplicate/colliding inventory refusal, and finished-ZIP validation. Final head and CI are recorded in PR #3.
 - Remaining blockers: distribution/license decision, actual artifact qualification, repository controls verification, final release review.
 - Next action: Mike reviews the fixed-asset PR and records the distribution decision; then prepare the exact pilot asset for qualification.
 

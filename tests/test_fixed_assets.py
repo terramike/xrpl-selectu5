@@ -90,5 +90,57 @@ class TestFixedAssets(unittest.TestCase):
             with zipfile.ZipFile(io.BytesIO(a)) as z:
                 self.assertEqual(z.namelist(), ["pkg-1/SKILL.md", "pkg-1/scripts/x.py"])
 
+class TestAuditFixes(unittest.TestCase):
+    def test_distribution_rejected_on_core_entry(self):
+        reg = json.load(open(os.path.join(SKILL, "registry", "registry.json")))
+        core = copy.deepcopy(next(e for e in reg["entries"] if e["kind"] == "core"))
+        core["distribution"] = reg_entry()["distribution"]
+        reg2 = {"schema": "selectu5-registry/1", "updated_at": "2026-10-10", "curator": "test", "entries": [core]}
+        with self.assertRaises(m.RegistryError):
+            m.validate_registry(reg2)
+
+    def test_asset_url_malformed_values(self):
+        bad = [
+            "https://github.com/terramike/xrpl-selectu5/releases/download/v1/x.zip\nhttps://evil.example.com/x",
+            "https://github.com/terramike/xrpl-selectu5/releases/download/%2e%2e/x.zip",
+            "https://github.com/terramike/xrpl-selectu5/releases/download/v1%2fx/x.zip",
+            "https://github.com:bad/terramike/xrpl-selectu5/releases/download/v1/x.zip",
+            "https://github.com:99999/terramike/xrpl-selectu5/releases/download/v1/x.zip",
+            12345,
+        ]
+        for url in bad:
+            e = reg_entry(); e["distribution"]["asset_url"] = url
+            with self.assertRaises(m.RegistryError, msg=str(url)):
+                validate(e)
+
+    def test_package_rejects_symlink_to_external_sentinel(self):
+        with tempfile.TemporaryDirectory() as td:
+            src = os.path.join(td, "src"); os.makedirs(os.path.join(src, "scripts"))
+            open(os.path.join(src, "SKILL.md"), "w").write("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
+            outside = os.path.join(td, "sentinel.txt"); open(outside, "w").write("external dummy content")
+            os.symlink(outside, os.path.join(src, "scripts", "linked.py"))
+            with self.assertRaises(SystemExit):
+                pkg.build_zip(src, "pkg-1", [{"path": "SKILL.md"}, {"path": "scripts/linked.py"}])
+
+    def test_package_rejects_duplicate_and_colliding_paths(self):
+        with tempfile.TemporaryDirectory() as td:
+            open(os.path.join(td, "SKILL.md"), "w").write("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
+            with self.assertRaises(SystemExit):
+                pkg.build_zip(td, "pkg-1", [{"path": "SKILL.md"}, {"path": "skill.md"}])
+            with self.assertRaises(SystemExit):
+                pkg.build_zip(td, "pkg-1", [{"path": "SKILL.md"}, {"path": "SKILL.md"}])
+
+    def test_clean_exports_build_identical_valid_archive(self):
+        with tempfile.TemporaryDirectory() as td:
+            def export(name):
+                root = os.path.join(td, name); os.makedirs(os.path.join(root, "scripts"))
+                open(os.path.join(root, "SKILL.md"), "w").write("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
+                open(os.path.join(root, "scripts", "x.py"), "w").write("x=1\n")
+                return root
+            files = [{"path": "SKILL.md"}, {"path": "scripts/x.py"}]
+            a, _ = pkg.build_zip(export("a"), "pkg-1", files)
+            b, _ = pkg.build_zip(export("b"), "pkg-1", files)
+            self.assertEqual(a, b)  # build_zip already ran the installer archive validator
+
 if __name__ == "__main__":
     unittest.main()
