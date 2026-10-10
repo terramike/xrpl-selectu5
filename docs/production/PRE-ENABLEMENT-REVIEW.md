@@ -85,3 +85,11 @@ claim about installed third-party skills (SKILL.md states this plainly).
    requires its own pull request, review, new package version, and the
    full prep → approve → publish release cycle. Nothing in this review
    pre-approves it.
+
+## Consent ceremony — confirmed
+
+Confirmed by Mike on 2026-10-10: the standing consent rule is the
+user's word for the exact entry and version, given in chat after the
+host shows the permissions card and the canonical plan. The chat
+transcript is the consent record; `--yes` and `--plan` encode that word
+for the installer and are never substitutes for it.
