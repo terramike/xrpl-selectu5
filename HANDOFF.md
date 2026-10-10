@@ -96,3 +96,32 @@ Corruption, extra-backup, extra-directory, permission, and embedded-child syntax
 CI retains Stage 3 evidence for Linux and Windows and records each checkout's qualification and installer identities.
 Use the final follow-up head's CI artifacts for acceptance. Earlier results remain historical evidence.
 The shipped installer remains disabled. Host consent, credential-read evidence, catalog authority, and release enablement still need review.
+
+## 2026-10-10 — Stage 4 review package prepared
+
+Current state: public repository (Apache-2.0) with v0.2.4 and v0.2.5
+prereleases published and independently digest-verified; Stage 3 actual
+Linux qualification is complete including interruption recovery; release
+immutability is enabled; `main` branch protection is applied and verified
+(required linux+windows checks, one approval, no force pushes or branch
+deletion, admins not enforced).
+
+Stage 4 package (`docs/production/OPERATOR-ACTIONS.md`, refreshed
+`evidence.json`, acceptance addendum) is proposed in this pull request.
+Catalog C for the qualified 0.2.5 entry is proposed separately in PR #9
+(commit `1519904c932d2e3893b14d19d997b0e7b1d02d6e`); merging it does not
+enable installation. Remaining decisions: merge PR #5 and confirm the
+Windows actual run, merge PR #9, and any installer enablement as its own
+separate decision. `INSTALL_ENABLED = False` remains the shipped gate.
+
+## Stage 3 final-head evidence reconciliation
+
+PR #5 head `e84f3f07f8648fea26d264bc488d4ef57ca9fff6` passed all four Linux and Windows push and pull-request jobs.
+The push checkout was that head. The pull-request checkout was `6f6dda89816f5e7326d32a9d3cda98809b687c96`.
+Actual retrieval, fresh installation, update, interruption recovery, and no-op passed on both platforms.
+The follow-up checks complete backup contents and active package bytes. CI retains Stage 3 evidence for both platforms.
+
+CI: https://github.com/terramike/xrpl-selectu5/actions/runs/38042700935 and https://github.com/terramike/xrpl-selectu5/actions/runs/38042702810.
+Earlier head results remain historical evidence. Stage 3 has passed; PR #5 still requires review and merge.
+Review host consent, catalog authority, and credential-read evidence before a separate installer enablement decision.
+Unchanged sentinel hashes do not establish zero reads. The shipped installer remains disabled.
