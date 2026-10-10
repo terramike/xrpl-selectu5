@@ -386,7 +386,9 @@ def load_registry():
     for src in candidates:
         try:
             reg = json.loads(read_limited(src, 1024 * 1024).decode("utf-8"))
-            return validate_registry(reg), src
+            reg = validate_registry(reg)
+            LAST_CATALOG["date"] = reg.get("updated_at")
+            return reg, src
         except Exception as exc:
             errors.append(f"{src}: {exc}")
     print(f"xrpl-selectu5 {VERSION}: cannot read any registry ({'; '.join(errors)})", file=sys.stderr)
@@ -425,11 +427,18 @@ def local_skills(skills_dir):
     return found
 
 
+LAST_CATALOG = {}
+
+
 def header(source=None):
     print(f"xrpl-selectu5 {VERSION} — Selectu5, the XRPL Muse skill store")
     if source:
         label = "local registry" if source == LOCAL_REGISTRY else source
         print(f"registry: {label}")
+        if LAST_CATALOG.get("date"):
+            print(f"catalog date: {LAST_CATALOG['date']}")
+        if source == LOCAL_REGISTRY and not os.environ.get("SELECTU5_REGISTRY"):
+            print("note: the remote catalog could not be read; this bundled snapshot may be stale.")
 
 
 def get_entry(reg, entry_id):
