@@ -8,17 +8,22 @@ after manifest verification. It never proposes, never signs, never
 reads seeds, keys, tokens, or policy files.
 """
 import argparse
+import contextlib
 import io
 import json
 import os
 import re
+import secrets
 import shutil
+import stat
 import sys
 import tempfile
+import time
+import urllib.parse
 import urllib.request
 import zipfile
 
-VERSION = "0.2.0"
+VERSION = "0.2.2"
 # Audit repair gate (2026-10-09): real installation stays disabled until
 # the acceptance criteria in the audit report pass. Dry-run cards stay on.
 INSTALL_ENABLED = False
@@ -43,14 +48,23 @@ class RegistryError(ValueError):
     pass
 
 
-APPROVED_REPO_OWNERS = {"terramike"}
+APPROVED_REPO_PAIRS = {
+    ("terramike", "xrpl-muse-skill"),
+    ("terramike", "xrpl-view-export"),
+    ("terramike", "xrpl-community-shows"),
+    ("terramike", "xrpl-selectu5"),
+    ("terramike", "xrpl-demo"),
+}
+ALLOWED_DOWNLOAD_HOSTS = {"github.com", "codeload.github.com"}
+TRUSTED_INSTALL_SOURCE = "local-reviewed-catalog"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class _HttpsOnlyRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if not newurl.startswith("https://"):
-            raise RegistryError("redirect to a non-https URL is refused")
+        parsed = urllib.parse.urlparse(newurl)
+        if parsed.scheme != "https" or parsed.hostname not in ALLOWED_DOWNLOAD_HOSTS or parsed.username or parsed.password:
+            raise RegistryError("redirect destination is not an approved HTTPS endpoint")
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -76,7 +90,8 @@ def read_limited(src, limit):
                     raise RegistryError(f"source passes the {limit}-byte limit")
                 chunks.append(chunk)
             return b"".join(chunks)
-    data = open(src, "rb").read(limit + 1)
+    with open(src, "rb") as fh:
+        data = fh.read(limit + 1)
     if len(data) > limit:
         raise RegistryError(f"source passes the {limit}-byte limit")
     return data
@@ -111,6 +126,9 @@ LIMITS = {
 }
 
 
+WINDOWS_RESERVED = {"con", "prn", "aux", "nul"} | {f"com{i}" for i in range(1, 10)} | {f"lpt{i}" for i in range(1, 10)}
+
+
 def _member_relpath(name):
     if "\\" in name:
         raise RegistryError(f"archive member uses a backslash: {name!r}")
@@ -119,6 +137,13 @@ def _member_relpath(name):
     parts = [x for x in name.split("/") if x not in ("", ".")]
     if any(x == ".." for x in parts):
         raise RegistryError(f"archive member path escapes its root: {name!r}")
+    for part in parts:
+        if ":" in part:
+            raise RegistryError(f"archive member path contains a colon: {name!r}")
+        if part.endswith((" ", ".")):
+            raise RegistryError(f"archive member path is not portable to Windows: {name!r}")
+        if part.split(".")[0].lower() in WINDOWS_RESERVED:
+            raise RegistryError(f"archive member uses a Windows reserved name: {name!r}")
     return "/".join(parts)
 
 
@@ -129,30 +154,36 @@ def validate_archive(zf, package_root):
         raise RegistryError("archive has too many members")
     if not package_root:
         raise RegistryError("the catalog records no package root for this entry")
-    seen, total = {}, 0
+    files, dirs, total = {}, set(), 0
     manifest_count = 0
     for info in infos:
-        rel = _member_relpath(info.filename)
-        if len(info.filename) > LIMITS["member_path"]:
+        original = info.filename
+        rel = _member_relpath(original)
+        if not rel:
+            continue
+        if len(original) > LIMITS["member_path"]:
             raise RegistryError("archive member path is too long")
         if info.flag_bits & 0x1:
             raise RegistryError("encrypted archive members are refused")
         if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
             raise RegistryError("unsupported archive compression method")
-        mode = (info.external_attr >> 16) & 0o170000
-        if mode == 0o120000:
-            raise RegistryError("symbolic links in archives are refused")
-        if info.is_dir():
-            continue
-        if SECRET_NAME.search(os.path.basename(rel)):
-            raise RegistryError(f"credential-named file in package: {rel}")
-        key = rel.lower()
-        if key in seen:
-            raise RegistryError(f"duplicate or colliding archive member: {rel}")
-        seen[key] = rel
+        ftype = stat.S_IFMT((info.external_attr >> 16) or 0)
+        if ftype and ftype not in (stat.S_IFREG, stat.S_IFDIR):
+            raise RegistryError("unsupported archive member type")
         parts = rel.split("/")
         if parts[0] != package_root:
             raise RegistryError("archive root does not match the recorded package root")
+        key = rel.lower()
+        if info.is_dir():
+            if key in files:
+                raise RegistryError(f"file and directory paths collide in the archive: {rel}")
+            dirs.add(key)
+            continue
+        if key in files or key in dirs:
+            raise RegistryError(f"duplicate or colliding archive member: {rel}")
+        if SECRET_NAME.search(os.path.basename(rel)):
+            raise RegistryError(f"credential-named file in package: {rel}")
+        files[key] = rel
         if len(parts) == 2 and parts[1] == "SKILL.md":
             manifest_count += 1
             if info.file_size > LIMITS["manifest_bytes"]:
@@ -162,10 +193,10 @@ def validate_archive(zf, package_root):
         total += info.file_size
         if total > LIMITS["expanded_total"]:
             raise RegistryError("expanded package passes the total limit")
-    for key in seen:
+    for key in files:
         parts = key.split("/")
         for i in range(1, len(parts)):
-            if "/".join(parts[:i]) in seen:
+            if "/".join(parts[:i]) in files:
                 raise RegistryError("file and directory paths collide in the archive")
     if manifest_count != 1:
         raise RegistryError("archive must hold exactly one package-root SKILL.md")
@@ -227,6 +258,8 @@ def check_core_compat(required, core_version_text):
     need = parse_version(required[2:])
     if have[:3] < need[:3]:
         raise RegistryError(f"core {core_version_text} does not meet {required}")
+    if have[:3] == need[:3] and have[3]:
+        raise RegistryError(f"core {core_version_text} is a prerelease and does not meet {required}")
     return True
 
 
@@ -255,6 +288,9 @@ def validate_registry(reg):
         raise RegistryError("registry: top level must be an object")
     if reg.get("schema") != "selectu5-registry/1":
         raise RegistryError(f"registry: unsupported schema {reg.get('schema')!r}")
+    for meta_key in ("updated_at", "curator"):
+        if reg.get(meta_key) is not None:
+            _check_text(reg.get(meta_key), f"registry {meta_key}", 80)
     entries = reg.get("entries")
     if not isinstance(entries, list) or not entries or len(entries) > MAX_ENTRIES:
         raise RegistryError("registry: entries must be a list of 1..200 items")
@@ -304,7 +340,7 @@ def validate_registry(reg):
             raise RegistryError(f"{eid}: ref is unsafe")
         if kind == "skill":
             m = re.match(r"^https://github\.com/([^/]+)/([A-Za-z0-9._-]+)$", repo)
-            if not m or m.group(1) not in APPROVED_REPO_OWNERS:
+            if not m or (m.group(1), m.group(2)) not in APPROVED_REPO_PAIRS:
                 raise RegistryError(f"{eid}: repo is not an approved GitHub owner/repo pair")
             if ref is not None and not COMMIT_RE.match(ref):
                 raise RegistryError(f"{eid}: installable ref must be a full 40-char commit SHA")
@@ -331,30 +367,65 @@ def validate_registry(reg):
 
 
 def parse_version(text):
-    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$", str(text or ""))
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$", str(text or ""))
     if not m:
         return None
     return (int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) or "")
 
 
+def version_key(text):
+    """Semantic-version sort key. A release sorts after its prereleases."""
+    parsed = parse_version(text)
+    if parsed is None:
+        return None
+    major, minor, patch, pre = parsed
+    if not pre:
+        return (major, minor, patch, 1, ())
+    ids = []
+    for part in pre.split("."):
+        if part.isdigit():
+            ids.append((0, int(part), ""))
+        else:
+            ids.append((1, 0, part))
+    return (major, minor, patch, 0, tuple(ids))
+
+
+def compare_versions(a, b):
+    ka, kb = version_key(a), version_key(b)
+    if ka is None or kb is None:
+        return None
+    return (ka > kb) - (ka < kb)
+
+
+def _root_components(skills_dir):
+    """Check every existing component of the supplied root. No mutation."""
+    supplied = os.path.abspath(os.path.expanduser(str(skills_dir)))
+    cur = os.path.sep if supplied.startswith(os.path.sep) else ""
+    for part in supplied.split(os.path.sep):
+        if not part:
+            continue
+        cur = os.path.join(cur, part) if cur else part
+        if os.path.lexists(cur) and os.path.islink(cur):
+            raise RegistryError("skills root path contains a symlink component")
+    return os.path.realpath(supplied)
+
+
 def validate_destination(skills_dir, entry_id):
     """Return the canonical target path or raise RegistryError. No mutation."""
-    root = os.path.realpath(skills_dir)
+    if not ID_RE.match(entry_id or "") or entry_id in RESERVED_CORE_IDS:
+        raise RegistryError("destination identifier is not an installable skill id")
+    root = _root_components(skills_dir)
     home = os.path.realpath(os.path.expanduser("~"))
-    forbidden = [os.path.join(home, ".xrpl"),
-                 os.path.realpath(os.environ.get("SELECTU5_CORE_DIR", os.path.expanduser("~/workspace/xrpl-muse-skill")))]
-    for bad in forbidden:
+    core_dir = os.path.realpath(os.environ.get("SELECTU5_CORE_DIR", os.path.expanduser("~/workspace/xrpl-muse-skill")))
+    for bad in (os.path.join(home, ".xrpl"), core_dir):
         if root == bad or root.startswith(bad + os.sep):
             raise RegistryError("skills root cannot sit inside the core or credential directory")
-    if os.path.islink(skills_dir):
-        raise RegistryError("skills root cannot be a symlink")
     target = os.path.join(root, entry_id)
-    if os.path.dirname(os.path.realpath(target)) != root and os.path.lexists(target):
+    if os.path.dirname(target) != root:
         raise RegistryError("target escapes the skills root")
-    if os.path.islink(target):
-        raise RegistryError("target cannot be a symlink")
-    if os.path.lexists(target) and not os.path.isdir(target):
-        raise RegistryError("target exists and is not a directory")
+    if os.path.lexists(target):
+        if os.path.islink(target) or not os.path.isdir(target):
+            raise RegistryError("target exists and is not a plain directory")
     if os.path.isdir(root):
         for name in os.listdir(root):
             if name != entry_id and name.lower() == entry_id.lower():
@@ -366,31 +437,38 @@ FRONTMATTER = re.compile(r"^---\s*\n(.*?)\n---", re.S)
 FIELD = re.compile(r"^(name|version|access):\s*[\"']?([^\"'\n]+)[\"']?\s*$", re.M)
 
 
-def read_source(src):
-    if src.startswith(("https://", "file://")):
-        req = urllib.request.Request(src, headers={"User-Agent": f"xrpl-selectu5/{VERSION}"})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            return resp.read()
-    with open(src, "rb") as fh:
-        return fh.read()
+def catalog_trust(source):
+    """Only the bundled reviewed catalog may authorize installs."""
+    return TRUSTED_INSTALL_SOURCE if source == LOCAL_REGISTRY else "browse-only"
 
 
-def load_registry():
-    """Return (registry_dict, source_label). Remote first, local fallback."""
+def load_registry(offline=False):
+    """Return (registry_dict, source_label). Remote first unless offline."""
     override = os.environ.get("SELECTU5_REGISTRY")
-    if override:
+    if offline:
+        candidates = [LOCAL_REGISTRY]
+    elif override:
         candidates = [override]
     else:
         candidates = [REMOTE_REGISTRY, LOCAL_REGISTRY]
     errors = []
     for src in candidates:
         try:
-            reg = json.loads(read_limited(src, 1024 * 1024).decode("utf-8"))
-            reg = validate_registry(reg)
-            LAST_CATALOG["date"] = reg.get("updated_at")
-            return reg, src
-        except Exception as exc:
+            raw = read_limited(src, 1024 * 1024)
+        except RegistryError as exc:
+            print(f"xrpl-selectu5 {VERSION}: catalog data from {src} is invalid: {exc}", file=sys.stderr)
+            return None, None
+        except Exception as exc:  # transport unavailable: fallback may proceed
             errors.append(f"{src}: {exc}")
+            continue
+        try:
+            reg = validate_registry(json.loads(raw.decode("utf-8")))
+        except Exception as exc:
+            print(f"xrpl-selectu5 {VERSION}: catalog data from {src} is invalid: {exc}", file=sys.stderr)
+            return None, None
+        LAST_CATALOG["date"] = reg.get("updated_at")
+        LAST_CATALOG["curator"] = reg.get("curator")
+        return reg, src
     print(f"xrpl-selectu5 {VERSION}: cannot read any registry ({'; '.join(errors)})", file=sys.stderr)
     return None, None
 
@@ -398,6 +476,24 @@ def load_registry():
 def parse_manifest(text):
     m = FRONTMATTER.search(text or "")
     return dict(FIELD.findall(m.group(1))) if m else {}
+
+
+def _read_provenance(path):
+    meta_path = os.path.join(path, ".selectu5-meta.json")
+    if os.path.islink(meta_path) or not os.path.isfile(meta_path):
+        return None
+    try:
+        with open(meta_path, encoding="utf-8") as fh:
+            meta = json.load(fh)
+    except Exception:
+        return {"invalid": True}
+    if not isinstance(meta, dict) or meta.get("schema") != "selectu5-install/1":
+        return {"invalid": True}
+    if not ID_RE.match(str(meta.get("id", ""))) or not VERSION_RE.match(str(meta.get("version", ""))):
+        return {"invalid": True}
+    if not COMMIT_RE.match(str(meta.get("commit", ""))) or not SHA256_RE.match(str(meta.get("artifact_sha256", ""))):
+        return {"invalid": True}
+    return meta
 
 
 def local_skills(skills_dir):
@@ -418,9 +514,11 @@ def local_skills(skills_dir):
                 fields = parse_manifest(fh.read(65536))
         except Exception:
             continue
-        if fields.get("name") and fields["name"] != name and not (name == "xrpl" and fields["name"] == "xrpl-muse-skill"):
-            fields["version"] = "unknown"
-        found[name] = {"version": fields.get("version", "unknown"), "path": os.path.join(skills_dir, name)}
+        identity_ok = fields.get("name") == name or (name == "xrpl" and fields.get("name") == "xrpl-muse-skill")
+        version_ok = bool(VERSION_RE.match(fields.get("version", "")))
+        version = fields.get("version") if identity_ok and version_ok else "unknown"
+        found[name] = {"version": version, "path": os.path.join(skills_dir, name),
+                       "provenance": _read_provenance(path)}
     for folder, entry_id in {"xrpl": "xrpl-muse-skill"}.items():
         if folder in found and entry_id not in found:
             found[entry_id] = found[folder]
@@ -436,7 +534,7 @@ def header(source=None):
         label = "local registry" if source == LOCAL_REGISTRY else source
         print(f"registry: {label}")
         if LAST_CATALOG.get("date"):
-            print(f"catalog date: {LAST_CATALOG['date']}")
+            print(f"catalog date: {esc(LAST_CATALOG['date'])}")
         if source == LOCAL_REGISTRY and not os.environ.get("SELECTU5_REGISTRY"):
             print("note: the remote catalog could not be read; this bundled snapshot may be stale.")
 
@@ -469,121 +567,224 @@ class LockHeldError(RegistryError):
     pass
 
 
-def install_lock(skills_root):
-    """One exclusive lock file for the skills root. Returns a release function."""
+@contextlib.contextmanager
+def skills_lock(skills_root):
+    """OS process lock. Process death releases it; the file is a rendezvous."""
+    os.makedirs(skills_root, exist_ok=True)
     lock_path = os.path.join(skills_root, ".selectu5.lock")
+    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+    locked = False
     try:
-        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
-    except FileExistsError:
-        raise LockHeldError("another Selectu5 install holds the skills-root lock")
-    os.write(fd, f"{os.getpid()}\n".encode())
-    os.close(fd)
-
-    def release():
         try:
-            os.unlink(lock_path)
-        except FileNotFoundError:
-            pass
+            import fcntl
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            locked = True
+        except ImportError:
+            try:
+                import msvcrt
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                locked = True
+            except OSError as exc:
+                raise LockHeldError("another Selectu5 install holds the skills-root lock") from exc
+        except BlockingIOError as exc:
+            raise LockHeldError("another Selectu5 install holds the skills-root lock") from exc
+        yield lock_path
+    finally:
+        try:
+            if locked:
+                try:
+                    import fcntl
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+                except ImportError:
+                    import msvcrt
+                    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        finally:
+            os.close(fd)
 
-    return release
+
+def install_lock(skills_root):
+    cm = skills_lock(skills_root)
+    cm.__enter__()
+    return lambda: cm.__exit__(None, None, None)
 
 
 def _txid():
-    import time
-    return f"{int(time.time() * 1000):x}-{os.getpid():x}"
+    return f"{int(time.time() * 1000):x}-{secrets.token_hex(8)}"
+
+
+def _fsync_dir(path):
+    try:
+        fd = os.open(path, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    except OSError:
+        pass
+
+
+def _write_journal(rec_dir, record):
+    """Atomic journal replacement: temp file, flush, fsync, replace."""
+    tx = record["tx"]
+    final = os.path.join(rec_dir, tx + ".json")
+    tmp = os.path.join(rec_dir, f".{tx}.{secrets.token_hex(4)}.tmp")
+    with open(tmp, "x", encoding="utf-8") as fh:
+        json.dump(record, fh, indent=2, sort_keys=True)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, final)
+    _fsync_dir(rec_dir)
+    return final
+
+
+def _validate_journal(rec_dir, name, root):
+    path = os.path.join(rec_dir, name)
+    if os.path.islink(path) or not os.path.isfile(path):
+        raise RegistryError(f"recovery record {name} is not a plain file")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            tx = json.load(fh)
+    except Exception as exc:
+        raise RegistryError(f"recovery record {name} is corrupt; no mutation was made") from exc
+    if not isinstance(tx, dict):
+        raise RegistryError("recovery record is not an object; no mutation was made")
+    txid = tx.get("tx")
+    if not isinstance(txid, str) or not re.match(r"^[0-9a-f]+-[0-9a-f]{16}$", txid) or name != txid + ".json":
+        raise RegistryError("recovery record has an invalid transaction id")
+    entry_id = tx.get("id")
+    if not isinstance(entry_id, str) or not ID_RE.match(entry_id) or entry_id in RESERVED_CORE_IDS:
+        raise RegistryError("recovery record has an invalid skill id")
+    if tx.get("stage") not in ("staging", "validated", "active-moved", "done", "recovered"):
+        raise RegistryError("recovery record has an invalid stage")
+    if not isinstance(tx.get("version"), str) or not VERSION_RE.match(tx["version"]):
+        raise RegistryError("recovery record has an invalid version")
+    backup_name = tx.get("backup_name")
+    if backup_name is not None and backup_name != f"{entry_id}.bak-{txid}":
+        raise RegistryError("recovery record has an invalid backup name")
+    target = validate_destination(root, entry_id)
+    backup = os.path.join(root, backup_name) if backup_name else None
+    for candidate in (target, backup):
+        if candidate and os.path.lexists(candidate) and os.path.islink(candidate):
+            raise RegistryError("recovery path is a symlink; no mutation was made")
+    return tx, target, backup
+
+
+def _rename_dir(src, dst):
+    if os.path.lexists(dst):
+        raise RegistryError(f"destination already exists: {dst}")
+    os.rename(src, dst)
 
 
 def recover_transactions(skills_root):
-    """Finish or roll back any recorded update before a new mutation starts."""
+    """Roll back recorded updates. Call only while holding skills_lock()."""
+    root = validate_destination(skills_root, "xrpl-selectu5").rsplit(os.sep, 1)[0]
     actions = []
-    rec_dir = os.path.join(skills_root, RECOVERY_DIRNAME)
+    rec_dir = os.path.join(root, RECOVERY_DIRNAME)
     if not os.path.isdir(rec_dir):
         return actions
+    if os.path.islink(rec_dir):
+        raise RegistryError("recovery directory is a symlink")
     for name in sorted(os.listdir(rec_dir)):
         if not name.endswith(".json"):
             continue
-        path = os.path.join(rec_dir, name)
-        try:
-            tx = json.load(open(path, encoding="utf-8"))
-        except Exception:
+        tx, target, backup = _validate_journal(rec_dir, name, root)
+        if tx["stage"] in ("done", "recovered"):
             continue
-        if tx.get("stage") == "done":
-            continue
-        target, backup = tx.get("target"), tx.get("backup")
-        if backup and os.path.isdir(backup) and target and not os.path.isdir(target):
-            shutil.move(backup, target)
-            actions.append(f"restored {tx.get('id')} from its update backup")
+        if tx["stage"] == "active-moved":
+            if os.path.isdir(target):
+                raise RegistryError(f"recovery state for {tx['id']} is ambiguous; no mutation was made")
+            if not backup or not os.path.isdir(backup):
+                raise RegistryError(f"recovery backup for {tx['id']} is missing; no mutation was made")
+            _rename_dir(backup, target)
+            actions.append(f"restored {tx['id']} from its update backup")
         tx["stage"] = "recovered"
-        json.dump(tx, open(path, "w", encoding="utf-8"), indent=2)
+        _write_journal(rec_dir, tx)
     return actions
 
 
 def install_package(e, data, skills_root, core_version_text):
-    """The recoverable install engine. The CLI gate stays shut until acceptance.
-
-    Stages on the destination filesystem, records the transaction before
-    the first rename, keeps every prior backup, and restores the original
-    active folder when the final rename fails.
-    """
+    """One recoverable install engine. The CLI is the only caller in production."""
+    if e.get("kind") != "skill" or not ID_RE.match(e.get("id") or "") or e.get("id") in RESERVED_CORE_IDS:
+        raise RegistryError("engine accepts only installable skill entries")
     verify_artifact(data, e.get("artifact_sha256"))
     if not e.get("package_root"):
         raise RegistryError("the catalog records no package root for this entry")
-    skills_root = os.path.realpath(skills_root)
-    os.makedirs(skills_root, exist_ok=True)
-    recovered = recover_transactions(skills_root)
-    release = install_lock(skills_root)
-    txid = _txid()
-    rec_dir = os.path.join(skills_root, RECOVERY_DIRNAME)
-    staging_root = os.path.join(skills_root, STAGING_DIRNAME)
-    staged = os.path.join(staging_root, txid)
+    if not COMMIT_RE.match(e.get("ref") or ""):
+        raise RegistryError("the catalog records no immutable commit for this entry")
     target = validate_destination(skills_root, e["id"])
-    backup = os.path.join(skills_root, f"{e['id']}.bak-{txid}")
-    record = {"tx": txid, "id": e["id"], "version": e["version"], "stage": "staging",
-              "target": target, "backup": backup if os.path.isdir(target) else None,
-              "commit": e.get("ref"), "artifact_sha256": e.get("artifact_sha256")}
-    try:
-        os.makedirs(rec_dir, exist_ok=True)
-        os.makedirs(staged, exist_ok=False)
-        zf = zipfile.ZipFile(io.BytesIO(data))
-        validate_archive(zf, e["package_root"])
-        root_prefix = e["package_root"] + "/"
-        for info in zf.infolist():
-            if info.is_dir():
-                continue
-            rel = _member_relpath(info.filename)[len(root_prefix):]
-            dest = os.path.join(staged, rel)
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
-            extract_member(zf, info, dest)
-        manifest = parse_manifest_strict(open(os.path.join(staged, "SKILL.md"), encoding="utf-8").read(LIMITS["manifest_bytes"]))
-        if manifest["name"] != e["id"] or manifest["version"] != e["version"] or manifest["access"] != e["access"]:
-            raise RegistryError("manifest does not match the approved plan")
-        check_core_compat(e.get("core_version"), core_version_text)
-        meta = {"id": e["id"], "version": e["version"], "commit": e.get("ref"),
-                "artifact_sha256": e.get("artifact_sha256"), "tx": txid}
-        json.dump(meta, open(os.path.join(staged, ".selectu5-meta.json"), "w", encoding="utf-8"), indent=2)
-        # Recheck approval-critical facts under the lock, then record before rename.
-        target = validate_destination(skills_root, e["id"])
-        record["stage"] = "validated"
-        json.dump(record, open(os.path.join(rec_dir, txid + ".json"), "w", encoding="utf-8"), indent=2)
+    root = os.path.dirname(target)
+    with skills_lock(root):
+        recovered = recover_transactions(root)
+        txid = _txid()
+        rec_dir = os.path.join(root, RECOVERY_DIRNAME)
+        staging_root = os.path.join(root, STAGING_DIRNAME)
+        staged = os.path.join(staging_root, txid)
+        backup_name = f"{e['id']}.bak-{txid}"
+        backup = os.path.join(root, backup_name)
+        record = {"tx": txid, "id": e["id"], "version": e["version"], "stage": "staging",
+                  "backup_name": None, "commit": e.get("ref"), "artifact_sha256": e.get("artifact_sha256")}
         moved_active = False
         try:
+            os.makedirs(rec_dir, exist_ok=True)
+            os.makedirs(staging_root, exist_ok=True)
+            os.makedirs(staged, exist_ok=False)
+            _write_journal(rec_dir, record)
+            deadline = time.monotonic() + 120
+            total = 0
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                validate_archive(zf, e["package_root"])
+                root_prefix = e["package_root"] + "/"
+                for info in zf.infolist():
+                    if time.monotonic() > deadline:
+                        raise RegistryError("extraction deadline passed")
+                    if info.is_dir():
+                        continue
+                    rel = _member_relpath(info.filename)[len(root_prefix):]
+                    dest = os.path.join(staged, rel)
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    total += extract_member(zf, info, dest)
+                    if total > LIMITS["expanded_total"]:
+                        raise RegistryError("expanded package passes the total limit")
+                    mode = (info.external_attr >> 16) & 0o777
+                    if stat.S_ISREG((info.external_attr >> 16) or 0o100644) and mode & 0o111:
+                        os.chmod(dest, 0o755)
+            with open(os.path.join(staged, "SKILL.md"), encoding="utf-8") as fh:
+                manifest = parse_manifest_strict(fh.read(LIMITS["manifest_bytes"] + 1))
+            if manifest["name"] != e["id"] or manifest["version"] != e["version"] or manifest["access"] != e["access"]:
+                raise RegistryError("manifest does not match the approved plan")
+            check_core_compat(e.get("core_version"), core_version_text)
+            meta = {"schema": "selectu5-install/1", "id": e["id"], "version": e["version"],
+                    "commit": e.get("ref"), "artifact_sha256": e.get("artifact_sha256"), "tx": txid}
+            with open(os.path.join(staged, ".selectu5-meta.json"), "w", encoding="utf-8") as fh:
+                json.dump(meta, fh, indent=2, sort_keys=True)
+            target = validate_destination(root, e["id"])
+            if os.path.lexists(backup):
+                raise RegistryError("backup destination already exists")
+            record["stage"] = "validated"
             if os.path.isdir(target):
-                shutil.move(target, backup)
-                moved_active = True
-                record["stage"] = "active-moved"
-                json.dump(record, open(os.path.join(rec_dir, txid + ".json"), "w", encoding="utf-8"), indent=2)
-            shutil.move(staged, target)
-        except Exception:
-            if moved_active and not os.path.isdir(target) and os.path.isdir(backup):
-                shutil.move(backup, target)
-            raise
-        record["stage"] = "done"
-        json.dump(record, open(os.path.join(rec_dir, txid + ".json"), "w", encoding="utf-8"), indent=2)
-        return {"installed": target, "backup": backup if moved_active else None, "recovered": recovered}
-    finally:
-        if os.path.isdir(staged):
-            shutil.rmtree(staged, ignore_errors=True)
-        release()
+                record["backup_name"] = backup_name
+            _write_journal(rec_dir, record)
+            try:
+                if os.path.isdir(target):
+                    _rename_dir(target, backup)
+                    moved_active = True
+                    record["stage"] = "active-moved"
+                    _write_journal(rec_dir, record)
+                _rename_dir(staged, target)
+            except Exception:
+                if moved_active and not os.path.lexists(target) and os.path.isdir(backup):
+                    _rename_dir(backup, target)
+                raise
+            with open(os.path.join(target, "SKILL.md"), encoding="utf-8") as fh:
+                placed = parse_manifest_strict(fh.read(LIMITS["manifest_bytes"] + 1))
+            if placed["name"] != e["id"] or placed["version"] != e["version"]:
+                raise RegistryError("installed package failed verification")
+            record["stage"] = "done"
+            _write_journal(rec_dir, record)
+            return {"installed": target, "backup": backup if moved_active else None, "recovered": recovered}
+        finally:
+            if os.path.isdir(staged):
+                shutil.rmtree(staged, ignore_errors=True)
 
 
 def cmd_list(reg, local, source):
@@ -628,14 +829,18 @@ def cmd_installed(local, source):
         print("\nNo local xrpl-* skills found.")
         return 0
     print("\ninstalled:")
+    shown = set()
     for name, info in local.items():
+        if info["path"] in shown or (name == "xrpl" and "xrpl-muse-skill" in local):
+            continue
+        shown.add(info["path"])
         print(f"  {name} {info['version']} — {info['path']}")
     return 0
 
 
 def cmd_check(reg, local, source):
     header(source)
-    updates, current, missing, newer, unknown = [], [], [], [], []
+    updates, current, missing, newer, unknown, provenance = [], [], [], [], [], []
     for e in reg["entries"]:
         if e["kind"] == "showcase":
             continue
@@ -643,15 +848,20 @@ def cmd_check(reg, local, source):
         if not have:
             missing.append(e)
             continue
-        hv, rv = parse_version(have["version"]), parse_version(e["version"])
-        if hv is None:
+        cmp = compare_versions(have["version"], e["version"])
+        if cmp is None:
             unknown.append((e, have["version"]))
-        elif hv < rv:
+        elif cmp < 0:
             updates.append((e, have["version"]))
-        elif hv > rv:
+        elif cmp > 0:
             newer.append((e, have["version"]))
         else:
-            current.append(e)
+            meta = have.get("provenance")
+            expected = e.get("artifact_sha256")
+            if expected and (not meta or meta.get("invalid") or meta.get("artifact_sha256") != expected or meta.get("commit") != e.get("ref")):
+                provenance.append((e, have["version"]))
+            else:
+                current.append(e)
     if updates:
         print("\nupdates available (nothing installed — your word first):")
         for e, have in updates:
@@ -668,6 +878,10 @@ def cmd_check(reg, local, source):
         print("\nlisted, not installed:")
         for e in missing:
             print(f"  {e['id']} {e['version']} — {esc(e['purpose'])}")
+    if provenance:
+        print("\nprovenance difference (same version, content not verified as the catalog artifact):")
+        for e, have in provenance:
+            print(f"  {e['id']}: installed {have}, catalog digest or commit differs or is unrecorded")
     if current:
         print("\ncurrent:")
         for e in current:
@@ -678,35 +892,22 @@ def cmd_check(reg, local, source):
     return 0
 
 
-def fetch_archive(e):
-    # Test transport only: a named local fixture replaces the network fetch.
-    # Production catalogs cannot carry archive overrides (validator rejects them).
-    if os.environ.get("SELECTU5_TEST_MODE") == "1" and os.environ.get("SELECTU5_TEST_ARCHIVE"):
-        url = os.environ["SELECTU5_TEST_ARCHIVE"]
-        return read_source(url), url
+def fetch_distribution(e):
+    """Bounded retrieval from the exact approved repository pair only."""
+    m = re.match(r"^https://github\.com/([^/]+)/([A-Za-z0-9._-]+)$", e.get("repo") or "")
+    if not m or (m.group(1), m.group(2)) not in APPROVED_REPO_PAIRS:
+        raise RegistryError("repository is not an approved owner/repo pair")
+    if not COMMIT_RE.match(e.get("ref") or ""):
+        raise RegistryError("distribution has no immutable commit")
     url = f"{e['repo'].rstrip('/')}/archive/{e['ref']}.zip"
-    data = read_source(url)
-    if len(data) > MAX_ARCHIVE_BYTES:
-        raise ValueError(f"archive too large ({len(data)} bytes)")
-    return data, url
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_DOWNLOAD_HOSTS or parsed.username or parsed.password:
+        raise RegistryError("distribution URL is not an approved HTTPS endpoint")
+    return read_limited(url, LIMITS["download_bytes"])
 
 
-def install_root(zf):
-    names = [n for n in zf.namelist() if n and not n.endswith("/")]
-    for n in names:
-        if n.startswith("/") or ".." in n.split("/"):
-            raise ValueError(f"unsafe path in archive: {n}")
-        if SECRET_NAME.search(os.path.basename(n)):
-            raise ValueError(f"refusing archive with secret-named file: {n}")
-    skill_mds = [n for n in names if os.path.basename(n) == "SKILL.md"]
-    if not skill_mds:
-        raise ValueError("archive has no SKILL.md")
-    md = min(skill_mds, key=len)
-    root = os.path.dirname(md)
-    return root, md
-
-
-def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None):
+def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None, skills_dir=None,
+                fetcher=None, install_enabled=None, trusted_catalog=None, core_version_text=None):
     e = get_entry(reg, entry_id)
     if not e:
         print(f"xrpl-selectu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
@@ -724,8 +925,9 @@ def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None):
         return 0
     print(f"\n{e['name']} [{e['id']}] — registry {e['version']}")
     print(permissions_card(e))
+    skills_dir = skills_dir or os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
     try:
-        destination = validate_destination(os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR), e["id"])
+        destination = validate_destination(skills_dir, e["id"])
     except RegistryError as exc:
         print(f"\nRefused: unsafe destination: {exc}", file=sys.stderr)
         return 1
@@ -740,68 +942,62 @@ def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None):
         return 1
     if not yes_version:
         print(f"\nDry run — nothing installed. To install this exact version, the user gives the word, then run:")
-        print(f"  selectu5.py install {e['id']} --yes {e['version']}")
+        print(f"  selectu5.py install {e['id']} --yes {e['version']} --plan {plan_digest}")
         return 0
     if yes_version != e["version"]:
         print(f"\nRefused: --yes {yes_version} does not match registry version {e['version']}. Nothing installed.", file=sys.stderr)
         return 1
-    if not INSTALL_ENABLED:
+    if not plan_arg:
+        print("\nRefused: a real installation requires --plan with the reviewed plan digest. Nothing was fetched.", file=sys.stderr)
+        return 1
+    enabled = INSTALL_ENABLED if install_enabled is None else install_enabled
+    if not enabled:
         print("\nReal installation is disabled during the Selectu5 audit repair. "
               "The card above stays available as a dry run. Nothing was installed.", file=sys.stderr)
         return 2
-    if not e.get("ref"):
-        print(f"\n{e['id']} has no pinned ref in the registry yet, so it is not installable. Nothing installed.", file=sys.stderr)
+    trust = catalog_trust(source) if trusted_catalog is None else trusted_catalog
+    if trust != TRUSTED_INSTALL_SOURCE:
+        print("\nRefused: this catalog is browse-only. Installations require the locally reviewed catalog. Nothing was fetched.", file=sys.stderr)
         return 1
-    skills_dir = os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
-    target = os.path.join(skills_dir, e["id"])
-    have = local.get(e["id"])
-    if have and have["version"] == e["version"]:
-        print(f"\n{e['id']} {e['version']} is already installed. Nothing changed.")
-        return 0
+    if not COMMIT_RE.match(e.get("ref") or "") or not SHA256_RE.match(e.get("artifact_sha256") or "") or not e.get("package_root"):
+        print("\nRefused: this entry is list-only. It needs an immutable commit, a reviewed artifact digest, and a package root. Nothing was fetched.", file=sys.stderr)
+        return 1
+    if core_version_text is None:
+        core = local.get("xrpl-muse-skill") if isinstance(local, dict) else None
+        core_version_text = core.get("version") if core else "unknown"
     try:
-        data, url = fetch_archive(e)
-        print(f"\nfetched: {url} ({len(data)} bytes, pinned ref {e['ref']})")
-        with tempfile.TemporaryDirectory() as tmp:
-            zf = zipfile.ZipFile(io.BytesIO(data))
-            root, md_rel = install_root(zf)
-            zf.extractall(tmp)
-            src_dir = os.path.join(tmp, root) if root else tmp
-            manifest = parse_manifest(open(os.path.join(src_dir, "SKILL.md"), encoding="utf-8").read(4096))
-            problems = []
-            if manifest.get("name") != e["id"]:
-                problems.append(f"manifest name {manifest.get('name')!r} != registry id {e['id']!r}")
-            if manifest.get("version") != e["version"]:
-                problems.append(f"manifest version {manifest.get('version')!r} != registry version {e['version']!r}")
-            if manifest.get("access") and manifest["access"] != e["access"]:
-                problems.append(f"manifest access {manifest['access']!r} != registry access {e['access']!r}")
-            if problems:
-                print("Refused: manifest does not match the registry entry:", file=sys.stderr)
-                for p in problems:
-                    print(f"  - {p}", file=sys.stderr)
-                print("Nothing installed.", file=sys.stderr)
-                return 1
-            if not manifest.get("access"):
-                print("note: the skill manifest has no access field; the registry card above is the authority for this install.")
-            os.makedirs(skills_dir, exist_ok=True)
-            backup = None
-            if os.path.isdir(target):
-                backup = target + f".bak-{have['version'] if have else 'unknown'}"
-                if os.path.isdir(backup):
-                    shutil.rmtree(backup)
-                shutil.move(target, backup)
-            shutil.move(src_dir, target)
-    except Exception as exc:
-        print(f"Install failed, nothing installed: {exc}", file=sys.stderr)
+        check_core_compat(e.get("core_version"), core_version_text)
+    except RegistryError as exc:
+        print(f"\nRefused: {exc} Nothing was fetched.", file=sys.stderr)
         return 1
-    print(f"installed: {e['id']} {e['version']} -> {target}")
-    if backup:
-        print(f"previous version kept at: {backup}")
+    have = local.get(e["id"]) if isinstance(local, dict) else None
+    if have and have.get("version") == e["version"]:
+        meta = have.get("provenance")
+        if meta and not meta.get("invalid") and meta.get("artifact_sha256") == e.get("artifact_sha256") and meta.get("commit") == e.get("ref"):
+            print(f"\n{e['id']} {e['version']} is already installed with matching provenance. Nothing changed.")
+            return 0
+        print(f"\n{e['id']} {e['version']} is installed but its provenance differs. Selectu5 does not silently replace it.", file=sys.stderr)
+        return 1
+    try:
+        data = fetcher(e) if fetcher is not None else fetch_distribution(e)
+        result = install_package(e, data, skills_dir, core_version_text)
+    except Exception as exc:
+        print(f"Install failed: {exc}", file=sys.stderr)
+        print(f"active location checked: {destination}", file=sys.stderr)
+        print("Any completed backup keeps its unique transaction name in the skills root.", file=sys.stderr)
+        return 1
+    for action in result.get("recovered") or []:
+        print(f"recovery: {action}")
+    print(f"installed: {e['id']} {e['version']} -> {result['installed']}")
+    if result.get("backup"):
+        print(f"previous version kept at: {result['backup']}")
     print(f"xrpl-selectu5 {VERSION}: install complete. The new skill shows its own version on its next run.")
     return 0
 
 
 def main():
     ap = argparse.ArgumentParser(prog="selectu5")
+    ap.add_argument("--offline", action="store_true", help="use only the bundled local catalog")
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("list")
     p_show = sub.add_parser("show"); p_show.add_argument("id")
@@ -820,7 +1016,7 @@ def main():
     skills_dir = os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
     if args.cmd == "installed":
         return cmd_installed(local_skills(skills_dir), "local inventory (no registry used)")
-    reg, source = load_registry()
+    reg, source = load_registry(offline=args.offline)
     if reg is None:
         return 1
     local = local_skills(skills_dir)

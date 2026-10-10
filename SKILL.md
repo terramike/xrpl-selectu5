@@ -1,6 +1,6 @@
 ---
 name: xrpl-selectu5
-version: 0.2.0
+version: 0.2.2
 core_version: ">=0.14.1"
 access: read
 author: terramike
@@ -23,16 +23,18 @@ what is installed on this machine.
 - `installed` — local `xrpl-*` skills found, with their versions.
 - `check-updates` — compare local versions with the registry. Report
   only. Never installs.
-- `install <id>` — shows the permissions card, then stops. With
-  `--yes <version>` (the user's word for that exact version, encoded)
-  it fetches the pinned ref, checks the manifest (name, version, and
-  access when the manifest states one), and installs. Core entries
+- `install <id>` — shows the permissions card and canonical plan,
+  then stops. A real install requires both `--yes <version>` and
+  `--plan <plan-digest>` for the exact reviewed plan. During the audit
+  repair the shipped command refuses real installation. Core entries
   are notice-only; Selectu5 never installs the core.
 - `version` — print the skill version.
 
-The registry is `registry/registry.json` in this repo. Set
-`SELECTU5_REGISTRY` to a file path or an https URL to use another copy.
-Set `SELECTU5_SKILLS_DIR` to scan a different skills folder.
+The registry is `registry/registry.json` in this repo. Only that
+bundled reviewed catalog can authorize an install; a remote or
+environment-selected catalog is browse-only. Use `--offline` to read
+only the bundled catalog. Set `SELECTU5_SKILLS_DIR` to scan a different
+skills folder.
 
 ## Rules (never break)
 
@@ -57,7 +59,7 @@ Set `SELECTU5_SKILLS_DIR` to scan a different skills folder.
   update runs without the user's word for that exact item and version.
 - A showcase entry (Clavi5, Visu5) is not an install. Show its real
   next step: enroll or open the page.
-- Every output prints the version line: `xrpl-selectu5 0.2.0`.
+- Every output prints the version line: `xrpl-selectu5 0.2.2`.
 
 ## Use
 

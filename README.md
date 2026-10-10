@@ -31,3 +31,8 @@ Status (2026-10-09): the v0.2.0 installer is under audit repair on the
 until the repair acceptance criteria pass; browsing, permissions cards,
 and update checks remain available. License: not yet selected; the
 maintainer decides before any public distribution.
+
+
+## Round-2 repair status
+
+The v0.2.2 candidate is on `fix/selectu5-install-boundaries-r2` for team-only review. The shipped installer remains disabled until Mike reviews the final acceptance evidence and Windows CI result. See `REPAIR-REPORT.md`.

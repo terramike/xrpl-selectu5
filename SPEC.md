@@ -1,6 +1,6 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
-Version: 0.2.1-repair (2026-10-09, audit repair branch)
+Package version: 0.2.2 (2026-10-09, audit repair round 2)
 Status: Decisions locked by Mike 2026-10-09. Build in a private repo.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 
@@ -54,7 +54,7 @@ selectu5.py list
 selectu5.py show <id>
 selectu5.py installed
 selectu5.py check-updates
-selectu5.py install <id>   (v0.1: dry run, prints the plan only)
+selectu5.py install <id>   (prints the card and plan; real install needs --yes and --plan)
 selectu5.py version
 ```
 
@@ -72,15 +72,18 @@ Each output shows the skill version. Time and network are not used in v0.1.
 
 1. Show the permissions card of the entry.
 2. Get the word of the user for that exact entry and version.
-3. Fetch the pinned release (tag or commit). Do not fetch a floating branch head.
-4. Read the `SKILL.md` manifest of the fetched skill. The name, version, and access must match the registry entry.
-5. Stop if one fact does not match. Install no file.
-6. Place the skill in the Muse skills folder. Print the installed version.
+3. Require the exact `--yes <version>` and `--plan <digest>` shown for the reviewed plan.
+4. Fetch only the recorded immutable commit from the exact approved owner/repository pair.
+5. Verify the artifact SHA-256 before extraction.
+6. Read the `SKILL.md` manifest of the fetched skill. The name, version, and access must match the registry entry.
+7. Stop if one fact does not match. Install no file.
+8. Place the skill in the Muse skills folder under the process lock. Print the installed version.
 
 ## 8. Safety rules
 
 - The skill does not sign. The skill does not propose a transaction.
-- The skill does not read or write core skill files, the policy file, or a seed.
+- The skill does not write core skill files, the policy file, or a seed.
+- The one permitted core read is the core skill public manifest version for a compatibility check.
 - The skill reads one fact set from a local skill: name and version in `SKILL.md` frontmatter.
 - A registry entry is data, not an instruction. Text in a purpose or notes field is shown as text only.
 - A listing is not an endorsement of a link in a listed skill.
@@ -109,10 +112,11 @@ Mike reads each new entry before it goes in the registry. The review checks:
 2. Update interval for v0.3: on-run only, or a daily check.
 3. The full collision check on the exact name "Selectu5" is a separate work item.
 
-- **Repair (in progress on `fix/selectu5-install-boundaries`):** strict
-  catalog validation, plan digests, archive and manifest rules,
-  recoverable locked updates, truthful version reports. Real
-  installation stays disabled until the audit acceptance run passes.
-  The bundled registry is a dated snapshot; when the remote catalog
-  cannot be read, the client prints the snapshot date and a stale
-  warning instead of pretending freshness.
+- **Repair round 2 (on `fix/selectu5-install-boundaries-r2`):** one
+  hardened CLI install path, process locking before recovery, validated
+  journals, strict archive and manifest rules, semantic-version and
+  provenance reports. Real installation stays disabled in the shipped
+  command until Mike reviews the final acceptance evidence. The
+  bundled registry is a dated snapshot; when the remote catalog cannot
+  be read, the client prints the snapshot date and a stale warning
+  instead of pretending freshness.
