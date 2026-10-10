@@ -38,13 +38,16 @@ class TestProductionBoundaries(unittest.TestCase):
                     m.install_package(e, data, root, "0.14.1")
                 e, data = package("1.0.1")
                 rename = m._rename_dir
+                injected = []
                 def corrupt(src, dst):
                     rename(src, dst)
-                    if dst == os.path.join(root, "xrpl-demo"):
+                    if os.path.normcase(os.path.realpath(dst)) == os.path.normcase(os.path.realpath(os.path.join(root, "xrpl-demo"))):
                         Path(dst, ".selectu5-meta.json").write_text("{}")
+                        injected.append(dst)
                 with patch.object(m, "_rename_dir", corrupt):
                     with self.assertRaisesRegex(m.RegistryError, "unresolved"):
                         m.install_package(e, data, root, "0.14.1")
+                self.assertEqual(len(injected), 1)
                 rec = Path(root, m.RECOVERY_DIRNAME)
                 records = [json.loads(p.read_text()) for p in rec.glob("*.json")]
                 self.assertEqual([r["stage"] for r in records], ["published"])
