@@ -98,3 +98,13 @@ A successful merge does not authorize package execution or deployment.
 
 The retained runner evidence identifies the checkout that produced each result.
 Historical evidence in this repository does not claim results for a future commit.
+
+## Fixed-asset transport (Stage 2)
+
+- [x] Design catalog `distribution` fields and bind them into the canonical plan. Evidence: `docs/production/FIXED-ASSET-DESIGN.md`.
+- [x] Add deterministic packaging with explicit inventory and rebuild verification. Evidence: `scripts/package.py`, `docs/production/package-inventory.json`.
+- [x] Propose package inventory and distribution/license decision record. Evidence: `docs/production/PACKAGE-INVENTORY.md`, `docs/production/DISTRIBUTION-DECISION.md`.
+- [x] Test changed asset locators, digests, plans, redirects, and malformed distribution entries locally. Evidence: `tests/test_fixed_assets.py`.
+- [ ] Record Mike's distribution repository, package contents, license, audience, and publication authority.
+- [ ] Prepare the exact pilot asset (S, D, package root) and later catalog commit C for Mike's review.
+- [ ] Complete actual artifact qualification on Linux and Windows (Stage 3).
