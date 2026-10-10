@@ -93,3 +93,25 @@ user's word for the exact entry and version, given in chat after the
 host shows the permissions card and the canonical plan. The chat
 transcript is the consent record; `--yes` and `--plan` encode that word
 for the installer and are never substitutes for it.
+
+## Correction (2026-10-10, Mike's review)
+
+The read-evidence sentence above originally implied coverage of every
+operation class. Exact scope, now instrumented: the synthetic harness
+(`scripts/qualify.py`) records per-operation core-manifest reads and
+credential-sentinel reads (must be 0) for fresh installation, no-op,
+update, **rejected request (wrong digest)**, and **recovery after an
+interrupted publish**; the actual-artifact harnesses additionally verify
+sentinel and dummy-core hashes unchanged across retrieval, install,
+update, interruption, and no-op. No claim is made beyond the dummy
+sentinels used, and no genuine credential file is ever read for these
+tests.
+
+Mike also identified two enablement gaps addressed on the 0.2.6 branch:
+the first installed artifact (0.2.5) predates enablement, and bundled
+catalogs cannot acquire new authority. The defined bootstrap and
+update procedure lives in `docs/production/BOOTSTRAP-AND-UPDATE.md`
+(predecessor-chain installs, catalog commit after each release), and
+`scripts/qualify_bootstrap.py` tests it with the shipped CLI and actual
+published artifacts, with gate and bundled-catalog state asserted by
+`tests/test_enablement_state.py`.
