@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""xrpl-selectu5 0.2.3 — Selectu5, the XRPL Muse skill app store.
+"""xrpl-selectu5 0.2.4 — Selectu5, the XRPL Muse skill app store.
 
 Companion skill. Read-only toward the core: it reads a curated registry
 and the version frontmatter of local skills. Installs happen only with
@@ -24,7 +24,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-VERSION = "0.2.3"
+VERSION = "0.2.4"
 # Audit repair gate (2026-10-09): real installation stays disabled until
 # the acceptance criteria in the audit report pass. Dry-run cards stay on.
 INSTALL_ENABLED = False
@@ -77,14 +77,68 @@ APPROVED_REPO_PAIRS = {
     ("terramike", "xrpl-demo"),
 }
 ALLOWED_DOWNLOAD_HOSTS = {"github.com", "codeload.github.com"}
+# GitHub-operated hosts that may serve an approved release asset after a
+# redirect from github.com. Any other redirect destination is refused.
+ALLOWED_REDIRECT_HOSTS = ALLOWED_DOWNLOAD_HOSTS | {"release-assets.githubusercontent.com", "objects.githubusercontent.com"}
 TRUSTED_INSTALL_SOURCE = "local-reviewed-catalog"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def validate_asset_url(e):
+    """Validate a recorded GitHub release-asset locator. Returns the URL.
+
+    The original string is checked before URL parsing: controls, embedded
+    whitespace, backslashes, and percent-encoded separators or dot
+    components are refused, and malformed values raise RegistryError.
+    """
+    dist = e.get("distribution")
+    if not isinstance(dist, dict):
+        raise RegistryError("distribution must be an object")
+    if dist.get("type") != "github_release_asset":
+        raise RegistryError("distribution type is not supported")
+    source_commit = dist.get("source_commit")
+    if not isinstance(source_commit, str) or not COMMIT_RE.match(source_commit):
+        raise RegistryError("distribution source_commit must be a full 40-char commit SHA")
+    if source_commit != e.get("ref"):
+        raise RegistryError("distribution source_commit must equal the pinned ref")
+    repo = e.get("repo")
+    if not isinstance(repo, str):
+        raise RegistryError("repository is not an approved owner/repo pair")
+    m = re.match(r"^https://github\.com/([^/]+)/([A-Za-z0-9._-]+)$", repo)
+    if not m or (m.group(1), m.group(2)) not in APPROVED_REPO_PAIRS:
+        raise RegistryError("repository is not an approved owner/repo pair")
+    url = dist.get("asset_url")
+    if not isinstance(url, str) or not url:
+        raise RegistryError("asset_url is not an approved GitHub release-asset URL")
+    if any(ord(c) < 0x20 or ord(c) == 0x7f for c in url) or any(c.isspace() for c in url) or "\\" in url:
+        raise RegistryError("asset_url contains controls, whitespace, or a backslash")
+    lowered = url.lower()
+    if "%2f" in lowered or "%5c" in lowered or "%00" in lowered:
+        raise RegistryError("asset_url contains an encoded separator or NUL")
+    raw_path = url.split("?", 1)[0].split("#", 1)[0]
+    decoded_segments = [urllib.parse.unquote(seg) for seg in raw_path.split("/")]
+    if any(seg in (".", "..") for seg in decoded_segments):
+        raise RegistryError("asset_url contains a dot path component")
+    try:
+        parsed = urllib.parse.urlparse(url)
+        port = parsed.port
+    except ValueError as exc:
+        raise RegistryError("asset_url is malformed") from exc
+    am = re.match(r"^/([^/]+)/([A-Za-z0-9._-]+)/releases/download/([^/]+)/([^/]+)$", parsed.path or "")
+    if (parsed.scheme != "https" or parsed.hostname != "github.com" or parsed.username or parsed.password
+            or port not in (None, 443) or parsed.query or parsed.fragment or not am):
+        raise RegistryError("asset_url is not an approved GitHub release-asset URL")
+    if (am.group(1), am.group(2)) != (m.group(1), m.group(2)):
+        raise RegistryError("asset_url repository does not match the catalog repository")
+    if not am.group(4).endswith(".zip") or dist.get("asset_name") != am.group(4):
+        raise RegistryError("asset_name must equal the .zip file name in asset_url")
+    return url
 
 
 class _HttpsOnlyRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         parsed = urllib.parse.urlparse(newurl)
-        if parsed.scheme != "https" or parsed.hostname not in ALLOWED_DOWNLOAD_HOSTS or parsed.username or parsed.password:
+        if parsed.scheme != "https" or parsed.hostname not in ALLOWED_REDIRECT_HOSTS or parsed.username or parsed.password or parsed.port not in (None, 443):
             raise RegistryError("redirect destination is not an approved HTTPS endpoint")
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -165,6 +219,10 @@ def build_plan(e, destination):
         "permissions": e["permissions"],
         "destination": destination,
     }
+    dist = e.get("distribution")
+    if isinstance(dist, dict):
+        plan["distribution"] = {"type": dist.get("type"), "source_commit": dist.get("source_commit"),
+                               "asset_url": dist.get("asset_url"), "asset_name": dist.get("asset_name")}
     blob = json.dumps(plan, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
     return plan, __import__("hashlib").sha256(blob).hexdigest()
 
@@ -411,6 +469,15 @@ def validate_registry(reg):
             root = e.get("package_root")
             if root is not None and (not isinstance(root, str) or not re.match(r"^[A-Za-z0-9._-]+$", root)):
                 raise RegistryError(f"{eid}: package_root must be one path component")
+            if e.get("distribution") is not None:
+                try:
+                    validate_asset_url(e)
+                except RegistryError as exc:
+                    raise RegistryError(f"{eid}: {exc}") from exc
+                if not COMMIT_RE.match(ref or "") or not SHA256_RE.match(digest or "") or not root:
+                    raise RegistryError(f"{eid}: a distributed entry needs a pinned ref, artifact digest, and package root")
+        if e.get("distribution") is not None and kind != "skill":
+            raise RegistryError(f"{eid}: distribution records are allowed only on skill entries")
         perm = e.get("permissions")
         if not isinstance(perm, dict):
             raise RegistryError(f"{eid}: permissions must be an object")
@@ -1185,15 +1252,22 @@ def cmd_check(reg, local, source):
 
 
 def fetch_distribution(e):
-    """Bounded retrieval from the exact approved repository pair only."""
+    """Bounded retrieval from the exact approved repository pair only.
+
+    A reviewed release-asset locator (catalog `distribution`) is used when
+    recorded; otherwise the legacy generated source-archive URL is used.
+    """
     m = re.match(r"^https://github\.com/([^/]+)/([A-Za-z0-9._-]+)$", e.get("repo") or "")
     if not m or (m.group(1), m.group(2)) not in APPROVED_REPO_PAIRS:
         raise RegistryError("repository is not an approved owner/repo pair")
     if not COMMIT_RE.match(e.get("ref") or ""):
         raise RegistryError("distribution has no immutable commit")
-    url = f"{e['repo'].rstrip('/')}/archive/{e['ref']}.zip"
+    if e.get("distribution") is not None:
+        url = validate_asset_url(e)
+    else:
+        url = f"{e['repo'].rstrip('/')}/archive/{e['ref']}.zip"
     parsed = urllib.parse.urlparse(url)
-    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_DOWNLOAD_HOSTS or parsed.username or parsed.password:
+    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_DOWNLOAD_HOSTS or parsed.username or parsed.password or parsed.port not in (None, 443):
         raise RegistryError("distribution URL is not an approved HTTPS endpoint")
     return read_limited(url, LIMITS["download_bytes"])
 

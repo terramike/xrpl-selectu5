@@ -1,6 +1,6 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
-Package version: 0.2.3 (2026-10-09, production audit repair baseline)
+Package version: 0.2.4 (2026-10-10, fixed-asset transport; installer still disabled)
 Status: Decisions locked by Mike 2026-10-09. Build in a private repo. Production qualification is in progress; the shipped installer remains disabled.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 

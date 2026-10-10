@@ -296,45 +296,61 @@
       "test_overrides": []
     },
     {
-      "name": "PR #2 e86b2d7 Linux CI",
-      "kind": "live_operation",
-      "status": "pass",
-      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
       "artifact_source_commit_S": "62648d7119353110957626b2aae8003d6cce64c8",
+      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
+      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
+      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075930",
+      "command": "Repository suite and scripts/qualify.py",
+      "exit_code": 0,
+      "failed": 0,
+      "kind": "live_operation",
+      "name": "PR #2 e86b2d7 Linux CI",
+      "passed": 61,
       "platform": "Linux",
       "python_version": "3.12",
-      "command": "Repository suite and scripts/qualify.py",
-      "exit_code": 0,
-      "passed": 61,
-      "failed": 0,
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S.",
       "skipped": 1,
-      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075930",
-      "test_overrides": [],
-      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S."
+      "status": "pass",
+      "test_overrides": []
     },
     {
-      "name": "PR #2 e86b2d7 Windows CI",
-      "kind": "live_operation",
-      "status": "pass",
-      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
       "artifact_source_commit_S": "62648d7119353110957626b2aae8003d6cce64c8",
-      "platform": "Windows",
-      "python_version": "3.12",
+      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
+      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
+      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075633",
       "command": "Repository suite and scripts/qualify.py",
       "exit_code": 0,
-      "passed": 62,
       "failed": 0,
+      "kind": "live_operation",
+      "name": "PR #2 e86b2d7 Windows CI",
+      "passed": 62,
+      "platform": "Windows",
+      "python_version": "3.12",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S.",
       "skipped": 0,
-      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075633",
-      "test_overrides": [],
-      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S."
+      "status": "pass",
+      "test_overrides": []
     }
   ],
+  "ci_artifact_policy": {
+    "candidate_identity": "Runner-generated evidence records the checked-out code commit separately from selected artifact source S.",
+    "files": [
+      "qualification-evidence.json",
+      "qualification-evidence.md"
+    ],
+    "name": "qualification-<job>-<checked-out-commit>",
+    "retention_days": 14
+  },
   "created_at_utc": "2026-10-10T06:40:10.398151Z",
+  "current_baseline": {
+    "ci": "All four PR/push jobs passed; 66 tests per platform with one platform-specific skip.",
+    "main_commit": "3e0f488e60bfe085630f74eca2435e09ee666dba",
+    "note": "Stage reports below are the historical PR #2 qualification record, not current installer code. Current Stage 1-2 fixed-asset work is on codex/selectu5-fixed-asset-transport.",
+    "pr2_tested_head": "7593c76e45b40f127c360eb297090d03f80791be"
+  },
+  "evidence_scope": "Historical local checks at 104b8ed and independently verified CI at e86b2d7. The final PR head has separate runner-generated qualification artifacts and check results.",
   "known_limits": [
     "Actual update qualification is synthetic until two production-transport artifacts exist.",
     "Process interruption evidence does not prove power-loss durability.",
@@ -356,15 +372,5 @@
     "public_visibility": "not_approved"
   },
   "schema": "selectu5-production-evidence/1",
-  "status": "qualification_in_progress",
-  "evidence_scope": "Historical local checks at 104b8ed and independently verified CI at e86b2d7. The final PR head has separate runner-generated qualification artifacts and check results.",
-  "ci_artifact_policy": {
-    "files": [
-      "qualification-evidence.json",
-      "qualification-evidence.md"
-    ],
-    "retention_days": 14,
-    "name": "qualification-<job>-<checked-out-commit>",
-    "candidate_identity": "Runner-generated evidence records the checked-out code commit separately from selected artifact source S."
-  }
+  "status": "qualification_in_progress"
 }

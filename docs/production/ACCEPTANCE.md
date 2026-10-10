@@ -10,6 +10,10 @@ Shipped installer: **disabled** (`INSTALL_ENABLED = False`).
 
 This report separates source inspection, synthetic checks, actual artifact checks, and live operations. It does not approve publication, installer enablement, or visibility change.
 
+## Current baseline reconciliation (2026-10-10)
+
+PR #2 is merged into `main` at `3e0f488e60bfe085630f74eca2435e09ee666dba`; tested PR head `7593c76e45b40f127c360eb297090d03f80791be`. All four PR/push CI jobs passed; each platform ran 66 tests with one platform-specific skip. The stage reports below remain the historical PR #2 qualification record and do not describe the current installer code. Current work is Stage 1-2 of the production plan (fixed-asset transport) on `codex/selectu5-fixed-asset-transport`; see `docs/production/FIXED-ASSET-DESIGN.md` and `docs/production/DISTRIBUTION-DECISION.md`.
+
 ## Stage 1 — catalog-only candidate
 
 Status: All four CI jobs passed for PR head `e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d`. Both platforms also ran the harness. The final follow-up commit requires its own successful checks before merge.

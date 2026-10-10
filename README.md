@@ -1,6 +1,6 @@
 # Selectu5 — the XRPL Muse skill store
 
-**xrpl-selectu5 0.2.3** · Companion skill for the XRPL Muse skill family.
+**xrpl-selectu5 0.2.4** · Companion skill for the XRPL Muse skill family.
 Core skill is not changed by this repo.
 
 Selectu5 (Latin *selectus* — chosen) is one curated registry
@@ -26,9 +26,10 @@ Registry: `registry/registry.json` (`selectu5-registry/1`), curated by
 
 Private while building. Public on the maintainer's word.
 
-Status: version 0.2.3 contains the remaining audit repairs.
+Status: version 0.2.4 adds fixed-asset transport support behind the disabled gate; 0.2.3 contains the remaining audit repairs.
 Real installation remains disabled. Catalog browsing and local inventory remain available.
 Use Python 3.12 or later on Linux or Windows.
 See `REPAIR-REPORT.md` for the new tests and remaining release conditions.
 
-License: Mike must select a license before public distribution.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Copyright 2026 Mike Mingucci.

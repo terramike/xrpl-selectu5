@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.4 — 2026-10-10
+
+Fixed-asset transport preparation. Installer remains disabled.
+
+- Added an optional catalog `distribution` record for reviewed GitHub release assets, bound into the canonical installation plan.
+- Added strict release-asset URL validation and GitHub asset redirect hosts.
+- Added `scripts/package.py`: deterministic ZIP packaging with an explicit inventory, per-file hashes, and rebuild verification.
+- Added Stage 1–2 production documents: fixed-asset design, package inventory, and the distribution/license decision record.
+
 ## 0.2.3 — 2026-10-09
 
 Production-audit repair baseline merged through PR #1.

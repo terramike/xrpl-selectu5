@@ -14,7 +14,7 @@ Record `blocked` or `not_run` when a check cannot finish.
 - [x] Check offline listing, inventory, permissions cards, and update notices. Evidence: repository suite + local CLI checks.
 - [x] Check unavailable catalog fallback and invalid catalog refusal. Evidence: repository suite.
 - [x] Check that installation refusal fetches no artifact. Evidence: repository suite disabled-gate tests.
-- [ ] Record a selected license, or mark public distribution blocked. Status: blocked — Mike must select license/scope.
+- [x] Record the selected license. Mike selected Apache-2.0 on 2026-10-10. `LICENSE` and `NOTICE` accompany the package. Distribution scope remains pending.
 - [ ] Record branch controls and required checks, or mark configuration pending. Status: blocked — current/proposed recorded in ACCEPTANCE; protection unavailable/read-only with current plan/token.
 - [x] Prepare changelog, limitations, and release notes. Evidence: `CHANGELOG.md`, `docs/production/RELEASE-NOTES-CATALOG-ONLY.md`.
 
@@ -77,7 +77,7 @@ The test override does not establish host consent or production authorization.
 
 | Decision | Actor | Required evidence | Initial state |
 |---|---|---|---|
-| License | Mike | Proposed license and distribution scope | Pending |
+| License | Mike | Apache-2.0. See `LICENSE` and `NOTICE`. | Selected on 2026-10-10. Distribution scope remains pending. |
 | Repository controls | Maintainer | Current settings and exact required check/review settings | Pending verification |
 | Catalog-only publication | Mike | Candidate CI, license, release notes, supported platforms | Not approved by this goal |
 | Pilot artifact/catalog | Mike | S, D, C, permissions, transport and isolated test results | Pending |
@@ -98,3 +98,22 @@ A successful merge does not authorize package execution or deployment.
 
 The retained runner evidence identifies the checkout that produced each result.
 Historical evidence in this repository does not claim results for a future commit.
+
+## Fixed-asset transport (Stage 2)
+
+- [x] Design catalog `distribution` fields and bind them into the canonical plan. Evidence: `docs/production/FIXED-ASSET-DESIGN.md`.
+- [x] Add deterministic packaging with explicit inventory and rebuild verification. Evidence: `scripts/package.py`, `docs/production/package-inventory.json`.
+- [x] Propose package inventory and distribution/license decision record. Evidence: `docs/production/PACKAGE-INVENTORY.md`, `docs/production/DISTRIBUTION-DECISION.md`.
+- [x] Test changed asset locators, digests, plans, redirects, and malformed distribution entries locally. Evidence: `tests/test_fixed_assets.py`.
+- [ ] Record Mike's distribution repository, package contents, license, audience, and publication authority.
+- [ ] Prepare the exact pilot asset (S, D, package root) and later catalog commit C for Mike's review.
+- [ ] Complete actual artifact qualification on Linux and Windows (Stage 3).
+
+## PR #3 audit fixes
+
+- [x] Reject source symlinks/junctions/reparse points and verify containment before reading package files (external-sentinel regression test).
+- [x] Build release evidence from two independent clean exports with recorded S and build-tool versions; working-tree builds labeled development evidence.
+- [x] Reject malformed asset URLs (controls, encoded traversal, invalid ports, wrong types) before URL normalization.
+- [x] Enforce distribution records on skill entries only.
+- [x] Reject duplicate/colliding inventory paths and validate the finished ZIP with the installer archive validator.
+- [ ] Linux and Windows CI for the final PR #3 head (now including the new regression tests).
