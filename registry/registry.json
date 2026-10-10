@@ -59,7 +59,7 @@
         "network": "None. The export file never leaves the machine by itself.",
         "signs": "Never."
       },
-      "notes": "Repo link to confirm at publish time; no pinned ref yet, so Selectu5 lists it but cannot install it.",
+      "notes": "Repo link to confirm at publish time; no pinned ref yet, so Selectu5 lists it but cannot install it. Manifest also needs an access field before it can pass strict install checks.",
       "ref": null,
       "artifact_sha256": null,
       "package_root": null
@@ -85,7 +85,7 @@
         "network": "https://shows-api.terramike.com (reads and show submissions).",
         "signs": "Never."
       },
-      "notes": "Private repo while in audit; listing goes public on Mike's word.",
+      "notes": "Companion repair on branch fix/selectu5-fixture-rename (v0.2.2, access frontmatter, data/shows-fixture.json). This 0.2.1 entry stays list-only until that release is reviewed and merged.",
       "ref": "b2c8a7ebda8dd3be564241a309f4d337977fa51f",
       "artifact_sha256": null,
       "package_root": null
