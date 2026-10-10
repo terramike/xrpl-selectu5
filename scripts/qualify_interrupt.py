@@ -11,7 +11,6 @@ import argparse
 import hashlib
 import json
 import os
-import signal
 import subprocess
 import sys
 import tempfile
@@ -114,7 +113,7 @@ def main():
         if line.startswith("MOVE"):
             moves.append(line)
             if len(moves) == 2:
-                proc.send_signal(signal.SIGKILL)
+                proc.kill()  # SIGKILL on POSIX, TerminateProcess on Windows
                 killed_at = line
                 break
     proc.wait(timeout=30)
