@@ -1,7 +1,7 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
-Package version: 0.2.5 (2026-10-10, fixed-asset transport; installer still disabled)
-Status: Decisions locked by Mike 2026-10-09. Build in a private repo. Production qualification is in progress; the shipped installer remains disabled.
+Package version: 0.2.6 (2026-10-10, installer enabled for qualified entries under the consent ceremony)
+Status: Decisions locked by Mike 2026-10-09. Build in a private repo. Production qualification is complete for the Selectu5 self-install path; the installer is enabled for qualified entries only.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 
 ## 1. Purpose
@@ -138,7 +138,7 @@ Mike reads each new entry before it goes in the registry. The review checks:
 12. URL downloads MUST run in a separate process with a 60-second total wall deadline.
 13. The parent MUST terminate and collect the download process when this deadline passes.
 14. The download process MUST enforce the existing byte limits and redirect policy.
-15. The installer MUST remain disabled until the artifact pilot and release review finish.
+15. The installer MUST remain disabled until the artifact pilot and release review finish. (Satisfied 2026-10-10: Stages 1-4 complete; enablement shipped in 0.2.6 under the confirmed consent ceremony.)
 
 Python 3.12 or later is required. CI uses Python 3.12 on Linux and Windows.
 A terminated download produces no installed package. A URL deadline failure does not silently change the selected source.

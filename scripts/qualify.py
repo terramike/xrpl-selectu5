@@ -163,9 +163,14 @@ def main():
     reg = json.load(open(os.path.join(REPO, "registry", "registry.json"), encoding="utf-8"))
     manifest = m.parse_manifest_strict(open(os.path.join(REPO, "SKILL.md"), encoding="utf-8").read())
     self_entry = next(e for e in reg["entries"] if e["id"] == "xrpl-selectu5")
-    version_ok = m.VERSION == manifest["version"] == self_entry["version"]
+    # Code and manifest must agree. The bundled catalog self-entry records
+    # the latest installable version, which may lag the client version.
+    version_ok = m.VERSION == manifest["version"]
     list_only = [e["id"] for e in reg["entries"] if e["kind"] == "skill" and not (e.get("ref") and e.get("artifact_sha256") and e.get("package_root"))]
-    add("source versions and gate", "source_inspection", "pass" if version_ok and m.INSTALL_ENABLED is False else "fail",
+    # The gate state is recorded, not asserted: up to 0.2.5 it had to be
+    # disabled; from 0.2.6 enablement is an explicit, reviewed decision and
+    # this harness simply reports the shipped state it found.
+    add("source versions and gate", "source_inspection", "pass" if version_ok else "fail",
         f"code={m.VERSION} manifest={manifest['version']} catalog={self_entry['version']} install_enabled={m.INSTALL_ENABLED}")
     add("unqualified entries list-only", "source_inspection", "pass" if list_only else "fail", ", ".join(list_only))
 

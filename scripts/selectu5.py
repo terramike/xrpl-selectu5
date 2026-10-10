@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""xrpl-selectu5 0.2.5 — Selectu5, the XRPL Muse skill app store.
+"""xrpl-selectu5 0.2.6 — Selectu5, the XRPL Muse skill app store.
 
 Companion skill. Read-only toward the core: it reads a curated registry
 and the version frontmatter of local skills. Installs happen only with
@@ -24,10 +24,10 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-VERSION = "0.2.5"
+VERSION = "0.2.6"
 # Audit repair gate (2026-10-09): real installation stays disabled until
 # the acceptance criteria in the audit report pass. Dry-run cards stay on.
-INSTALL_ENABLED = False
+INSTALL_ENABLED = True  # Enabled by Mike's enablement decision for 0.2.6; consent ceremony still required for every install.
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL_REGISTRY = os.path.join(SKILL_DIR, "registry", "registry.json")
 REMOTE_REGISTRY = "https://raw.githubusercontent.com/terramike/xrpl-selectu5/main/registry/registry.json"

@@ -1,6 +1,6 @@
 ---
 name: xrpl-selectu5
-version: 0.2.5
+version: 0.2.6
 core_version: ">=0.14.1"
 access: read
 author: terramike
@@ -65,7 +65,7 @@ skills folder.
 ## Requirements
 
 Use Python 3.12 or later on Linux or Windows.
-The installer remains disabled in version 0.2.5.
+Version 0.2.6 enables installation for qualified catalog entries under the confirmed consent ceremony.
 
 ## Use
 

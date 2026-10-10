@@ -26,8 +26,7 @@ Registry: `registry/registry.json` (`selectu5-registry/1`), curated by
 
 Private while building. Public on the maintainer's word.
 
-Status: version 0.2.5 adds fixed-asset transport support behind the disabled gate; 0.2.3 contains the remaining audit repairs.
-Real installation remains disabled. Catalog browsing and local inventory remain available.
+Status: version 0.2.6 enables installation for qualified catalog entries under the confirmed consent ceremony (the user's word for the exact entry and version, after the plan). Catalog browsing and local inventory remain available.
 Use Python 3.12 or later on Linux or Windows.
 See `REPAIR-REPORT.md` for the new tests and remaining release conditions.
 

@@ -30,11 +30,11 @@ def entry(eid, version, kind="skill", ref=None, archive=None):
 
 class TestSelectu5(unittest.TestCase):
     def test_version(self):
-        r = run("version"); self.assertEqual(r.returncode, 0); self.assertIn("0.2.5", r.stdout)
+        r = run("version"); self.assertEqual(r.returncode, 0); self.assertIn("0.2.6", r.stdout)
 
     def test_list_has_seed_entries(self):
         r = run("list"); self.assertEqual(r.returncode, 0)
-        for needle in ("xrpl-community-shows", "clavi5", "visu5", "xrpl-selectu5 0.2.5"):
+        for needle in ("xrpl-community-shows", "clavi5", "visu5", "xrpl-selectu5 0.2.6"):
             self.assertIn(needle, r.stdout)
 
     def test_show_permissions_card(self):
@@ -59,7 +59,7 @@ class TestSelectu5(unittest.TestCase):
     def test_install_yes_must_match(self):
         r = run("install", "xrpl-community-shows", "--yes", "9.9.9"); self.assertEqual(r.returncode, 1)
 
-    def test_install_disabled_during_repair(self):
+    def test_install_refused_from_unreviewed_catalog(self):
         with tempfile.TemporaryDirectory() as d:
             reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40)])
             skills = os.path.join(d, "skills"); os.makedirs(skills)
@@ -68,8 +68,8 @@ class TestSelectu5(unittest.TestCase):
             digest = re.search(r"--plan ([0-9a-f]{64})", dry.stdout).group(1)
             r = run("install", "xrpl-demo", "--yes", "1.0.0", "--plan", digest,
                     env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
-            self.assertEqual(r.returncode, 2)
-            self.assertIn("disabled during the Selectu5 audit repair", r.stderr)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("browse-only", r.stderr)
             self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-demo")))
 
     def test_check_updates_offline(self):
