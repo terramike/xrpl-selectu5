@@ -101,6 +101,133 @@ def build_plan(e, destination):
     return plan, __import__("hashlib").sha256(blob).hexdigest()
 
 
+LIMITS = {
+    "archive_members": 2000,
+    "expanded_total": 100 * 1024 * 1024,
+    "expanded_file": 20 * 1024 * 1024,
+    "manifest_bytes": 64 * 1024,
+    "member_path": 240,
+    "download_bytes": 25 * 1024 * 1024,
+}
+
+
+def _member_relpath(name):
+    if "\\" in name:
+        raise RegistryError(f"archive member uses a backslash: {name!r}")
+    if name.startswith("/") or re.match(r"^[A-Za-z]:", name) or name.startswith("\\\\"):
+        raise RegistryError(f"archive member path is absolute: {name!r}")
+    parts = [x for x in name.split("/") if x not in ("", ".")]
+    if any(x == ".." for x in parts):
+        raise RegistryError(f"archive member path escapes its root: {name!r}")
+    return "/".join(parts)
+
+
+def validate_archive(zf, package_root):
+    """Validate archive structure before any byte is extracted. Returns root."""
+    infos = zf.infolist()
+    if len(infos) > LIMITS["archive_members"]:
+        raise RegistryError("archive has too many members")
+    if not package_root:
+        raise RegistryError("the catalog records no package root for this entry")
+    seen, total = {}, 0
+    manifest_count = 0
+    for info in infos:
+        rel = _member_relpath(info.filename)
+        if len(info.filename) > LIMITS["member_path"]:
+            raise RegistryError("archive member path is too long")
+        if info.flag_bits & 0x1:
+            raise RegistryError("encrypted archive members are refused")
+        if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+            raise RegistryError("unsupported archive compression method")
+        mode = (info.external_attr >> 16) & 0o170000
+        if mode == 0o120000:
+            raise RegistryError("symbolic links in archives are refused")
+        if info.is_dir():
+            continue
+        key = rel.lower()
+        if key in seen:
+            raise RegistryError(f"duplicate or colliding archive member: {rel}")
+        seen[key] = rel
+        parts = rel.split("/")
+        if parts[0] != package_root:
+            raise RegistryError("archive root does not match the recorded package root")
+        if len(parts) == 2 and parts[1] == "SKILL.md":
+            manifest_count += 1
+            if info.file_size > LIMITS["manifest_bytes"]:
+                raise RegistryError("manifest passes the size limit")
+        if info.file_size > LIMITS["expanded_file"]:
+            raise RegistryError(f"archive member passes the per-file limit: {rel}")
+        total += info.file_size
+        if total > LIMITS["expanded_total"]:
+            raise RegistryError("expanded package passes the total limit")
+    for key in seen:
+        parts = key.split("/")
+        for i in range(1, len(parts)):
+            if "/".join(parts[:i]) in seen:
+                raise RegistryError("file and directory paths collide in the archive")
+    if manifest_count != 1:
+        raise RegistryError("archive must hold exactly one package-root SKILL.md")
+    return package_root
+
+
+def extract_member(zf, info, dest_path):
+    """Decompress one member with an actual byte counter, never a trust fall."""
+    written = 0
+    with zf.open(info) as src, open(dest_path, "wb") as out:
+        while True:
+            chunk = src.read(65536)
+            if not chunk:
+                break
+            written += len(chunk)
+            if written > LIMITS["expanded_file"]:
+                raise RegistryError("expanded file passes the per-file limit")
+            out.write(chunk)
+    return written
+
+
+def parse_manifest_strict(text):
+    """The supported frontmatter grammar: flat key: value lines, no duplicates."""
+    m = FRONTMATTER.search(text or "")
+    if not m:
+        raise RegistryError("manifest has no frontmatter")
+    fields = {}
+    for line in m.group(1).splitlines():
+        if not line.strip():
+            continue
+        km = re.match(r"^([a-z_]+):\s*(.*)$", line)
+        if not km:
+            raise RegistryError(f"manifest line is outside the supported grammar: {line[:40]!r}")
+        key, value = km.group(1), km.group(2).strip().strip("\"'")
+        if key in ("name", "version", "access") and key in fields:
+            raise RegistryError(f"manifest repeats the safety field {key}")
+        fields.setdefault(key, value)
+        if key in ("name", "version", "access"):
+            fields[key] = value
+    for key in ("name", "version", "access"):
+        if not fields.get(key):
+            raise RegistryError(f"manifest has no {key} field")
+    if not VERSION_RE.match(fields["version"]):
+        raise RegistryError("manifest version must be MAJOR.MINOR.PATCH")
+    if fields["access"] not in ("read", "propose"):
+        raise RegistryError("manifest access must be read or propose")
+    return fields
+
+
+def check_core_compat(required, core_version_text):
+    """Support >=MAJOR.MINOR.PATCH only. Unknown or old core refuses install."""
+    if required is None:
+        return True
+    if not CORE_VERSION_RE.match(required):
+        raise RegistryError(f"unsupported core version expression: {required!r}")
+    have = parse_version(core_version_text)
+    if have is None:
+        raise RegistryError("the installed core version is unknown; installation is refused")
+    need = parse_version(required[2:])
+    if have[:3] < need[:3]:
+        raise RegistryError(f"core {core_version_text} does not meet {required}")
+    return True
+
+
 def verify_artifact(data, expected_sha256):
     import hashlib
     actual = hashlib.sha256(data).hexdigest()

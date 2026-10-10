@@ -247,3 +247,62 @@ class TestPlanIdentity(unittest.TestCase):
     def test_plan_mismatch_refused(self):
         r = run("install", "xrpl-community-shows", "--plan", "0" * 64)
         self.assertEqual(r.returncode, 1)
+
+class TestArchiveAndManifest(unittest.TestCase):
+    def mod(self):
+        sys.path.insert(0, os.path.join(SKILL, "scripts"))
+        import selectu5
+        return selectu5
+
+    def zio(self, files):
+        import zipfile as zf_mod
+        buf = io.BytesIO()
+        with zf_mod.ZipFile(buf, "w") as z:
+            for rel, body in files.items():
+                z.writestr(rel, body)
+        buf.seek(0)
+        return zf_mod.ZipFile(buf)
+
+    def test_A12_two_roots_and_traversal_rejected(self):
+        m = self.mod()
+        with self.assertRaises(Exception):
+            m.validate_archive(self.zio({"a/SKILL.md": "x", "b/SKILL.md": "y"}), "a")
+        with self.assertRaises(Exception):
+            m.validate_archive(self.zio({"root/../evil": "x", "root/SKILL.md": "y"}), "root")
+        with self.assertRaises(Exception):
+            m.validate_archive(self.zio({"root\\evil": "x", "root/SKILL.md": "y"}), "root")
+        dup = io.BytesIO()
+        import zipfile as zf_mod
+        with zf_mod.ZipFile(dup, "w") as z:
+            z.writestr("root/SKILL.md", "x"); z.writestr("root/skill.md", "y")
+        dup.seek(0)
+        with self.assertRaises(Exception):
+            m.validate_archive(zf_mod.ZipFile(dup), "root")
+
+    def test_A10_A11_limits(self):
+        m = self.mod()
+        old = dict(m.LIMITS); m.LIMITS["expanded_file"] = 10; m.LIMITS["expanded_total"] = 15
+        try:
+            with self.assertRaises(Exception):
+                m.validate_archive(self.zio({"root/SKILL.md": "x" * 40}), "root")
+        finally:
+            m.LIMITS.update(old)
+
+    def test_A13_strict_manifest(self):
+        m = self.mod()
+        ok = m.parse_manifest_strict("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
+        self.assertEqual(ok["access"], "read")
+        with self.assertRaises(Exception):
+            m.parse_manifest_strict("---\nname: xrpl-demo\nversion: 1.0.0\n---\n")
+        with self.assertRaises(Exception):
+            m.parse_manifest_strict("---\nname: a\nname: b\nversion: 1.0.0\naccess: read\n---\n")
+
+    def test_A14_core_compat(self):
+        m = self.mod()
+        self.assertTrue(m.check_core_compat(">=1.2.3", "1.2.3"))
+        with self.assertRaises(Exception):
+            m.check_core_compat(">=999.0.0", "0.14.1")
+        with self.assertRaises(Exception):
+            m.check_core_compat(">=1.0.0", "unknown")
+        with self.assertRaises(Exception):
+            m.check_core_compat("~1.0", "1.0.0")
