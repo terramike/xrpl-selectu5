@@ -1,6 +1,6 @@
 ---
 name: xrpl-selectu5
-version: 0.1.0
+version: 0.2.0
 core_version: ">=0.14.1"
 access: read
 author: terramike
@@ -23,9 +23,11 @@ what is installed on this machine.
 - `installed` — local `xrpl-*` skills found, with their versions.
 - `check-updates` — compare local versions with the registry. Report
   only. Never installs.
-- `install <id>` — v0.1 prints the install plan only (dry run). A real
-  install lands in v0.2 and needs the user's word for that exact skill
-  and version.
+- `install <id>` — shows the permissions card, then stops. With
+  `--yes <version>` (the user's word for that exact version, encoded)
+  it fetches the pinned ref, checks the manifest (name, version, and
+  access when the manifest states one), and installs. Core entries
+  are notice-only; Selectu5 never installs the core.
 - `version` — print the skill version.
 
 The registry is `registry/registry.json` in this repo. Set
@@ -42,7 +44,7 @@ Set `SELECTU5_SKILLS_DIR` to scan a different skills folder.
   update runs without the user's word for that exact item and version.
 - A showcase entry (Clavi5, Visu5) is not an install. Show its real
   next step: enroll or open the page.
-- Every output prints the version line: `xrpl-selectu5 0.1.0`.
+- Every output prints the version line: `xrpl-selectu5 0.2.0`.
 
 ## Use
 

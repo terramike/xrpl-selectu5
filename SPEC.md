@@ -1,6 +1,6 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
-Version: 0.1.0 (2026-10-09)
+Version: 0.2.0 (2026-10-09)
 Status: Decisions locked by Mike 2026-10-09. Build in a private repo.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 
@@ -94,8 +94,8 @@ Mike reads each new entry before it goes in the registry. The review checks:
 
 ## 10. Phases
 
-- **v0.1 (this build):** Skill file, this spec, local registry, client script, tests. Offline. Install is a dry run.
-- **v0.2:** Client reads the registry from this repo on GitHub. Real install per Section 7. Repo goes public on Mike's word.
+- **v0.1 (done):** Skill file, this spec, local registry, client script, tests. Offline. Install is a dry run.
+- **v0.2 (this build):** Client reads the registry from this repo on GitHub, with the local file as fallback. Real install per Section 7: pinned ref only, manifest check before any file is placed, a set version kept as a backup folder on update. The core entry is notice-only. Repo goes public on Mike's word.
 - **v0.3:** Update check on a set interval (opt-in). Chat menu buttons from this skill.
 - **Later:** Builder submissions. A builder sends an entry draft. Mike reviews. No auto-list.
 

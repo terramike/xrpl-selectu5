@@ -1,6 +1,6 @@
 # Selectu5 — the XRPL Muse skill store
 
-**xrpl-selectu5 0.1.0** · Companion skill for the XRPL Muse skill family.
+**xrpl-selectu5 0.2.0** · Companion skill for the XRPL Muse skill family.
 Core skill is not changed by this repo.
 
 Selectu5 (Latin *selectus* — chosen) is one curated registry
