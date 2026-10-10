@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 — 2026-10-10
+
+Update-test package for Stage 3 qualification. Installer remains disabled.
+
+- Prepared as the second distinct reviewed artifact so the actual update path (0.2.4 -> 0.2.5) can be qualified against published release assets.
+- No behavior change; catalog entries remain list-only and `INSTALL_ENABLED = False`.
+
 ## 0.2.4 — 2026-10-10
 
 Fixed-asset transport preparation. Installer remains disabled.

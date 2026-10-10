@@ -30,11 +30,11 @@ def entry(eid, version, kind="skill", ref=None, archive=None):
 
 class TestSelectu5(unittest.TestCase):
     def test_version(self):
-        r = run("version"); self.assertEqual(r.returncode, 0); self.assertIn("0.2.4", r.stdout)
+        r = run("version"); self.assertEqual(r.returncode, 0); self.assertIn("0.2.5", r.stdout)
 
     def test_list_has_seed_entries(self):
         r = run("list"); self.assertEqual(r.returncode, 0)
-        for needle in ("xrpl-community-shows", "clavi5", "visu5", "xrpl-selectu5 0.2.4"):
+        for needle in ("xrpl-community-shows", "clavi5", "visu5", "xrpl-selectu5 0.2.5"):
             self.assertIn(needle, r.stdout)
 
     def test_show_permissions_card(self):

@@ -146,7 +146,7 @@
       "id": "xrpl-selectu5",
       "name": "Selectu5 (this store)",
       "kind": "skill",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "core_version": ">=0.14.1",
       "access": "read",
       "author": "terramike",
@@ -166,7 +166,7 @@
         "network": "Reads the catalog from GitHub. Distribution downloads use approved GitHub endpoints only during an approved install.",
         "signs": "Never."
       },
-      "notes": "Version 0.2.4 adds fixed-asset transport support behind the disabled installer gate. Installation remains disabled. The release commit, artifact digest, and package root require a separate reviewed catalog update.",
+      "notes": "Version 0.2.5 is the Stage 3 update-test package, prepared to qualify the actual 0.2.4 -> 0.2.5 update path against published release assets. Installation remains disabled. The release commit, artifact digest, and package root require a separate reviewed catalog update.",
       "ref": null,
       "artifact_sha256": null,
       "package_root": null

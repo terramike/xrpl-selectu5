@@ -17,12 +17,12 @@ def reg_entry():
     e = copy.deepcopy(BASE)
     e["ref"] = S
     e["artifact_sha256"] = D
-    e["package_root"] = "xrpl-selectu5-0.2.4"
+    e["package_root"] = "xrpl-selectu5-0.2.5"
     e["distribution"] = {
         "type": "github_release_asset",
         "source_commit": S,
-        "asset_url": "https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip",
-        "asset_name": "xrpl-selectu5-0.2.4.zip",
+        "asset_url": "https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip",
+        "asset_name": "xrpl-selectu5-0.2.5.zip",
     }
     return e
 
@@ -53,7 +53,7 @@ class TestFixedAssets(unittest.TestCase):
     def test_plan_binds_asset_locator(self):
         e = reg_entry()
         _, d1 = m.build_plan(e, "/tmp/skills/xrpl-selectu5")
-        e2 = reg_entry(); e2["distribution"]["asset_url"] = e2["distribution"]["asset_url"].replace("v0.2.4", "v0.2.5")
+        e2 = reg_entry(); e2["distribution"]["asset_url"] = e2["distribution"]["asset_url"].replace("v0.2.5", "v9.9.9")
         _, d2 = m.build_plan(e2, "/tmp/skills/xrpl-selectu5")
         self.assertNotEqual(d1, d2)
 
