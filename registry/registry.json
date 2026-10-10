@@ -154,8 +154,8 @@
         "network": "None in v0.1 offline mode. v0.2 reads the registry file from this repo on GitHub.",
         "signs": "Never."
       },
-      "notes": "Pinned ref points at the v0.1.0 commit; the registry entry is refreshed with each release commit.",
-      "ref": "2da843848ff7ce5ec80df72d41e6cd8ef45c3cc1"
+      "notes": "Pinned ref is the v0.2.0 release commit; refreshed with each release.",
+      "ref": "d97c6657932177e06e96a0f021d3d1c52a90b639"
     }
   ]
 }
