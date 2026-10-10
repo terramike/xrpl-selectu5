@@ -2,7 +2,8 @@
 
 Status: Mike selected public source distribution with fixed release assets on 2026-10-10.
 Mike also selected Apache-2.0 and authorized making this repository public.
-Repository visibility has not yet changed. Review public repository contents and history before the operator changes visibility.
+Mike changed repository visibility. Public visibility was verified on 2026-10-10.
+A complete historical content review has not been performed in this qualification task.
 Approval of the exact pilot asset and installer enablement remains pending.
 
 ## Decision required
@@ -46,8 +47,7 @@ The following table preserves the options considered.
 ## Effect of the decision
 
 Prepare the exact pilot asset (S, D, package root) and a later catalog commit C for review.
-Complete the repository contents and history review before the authorized visibility change.
-The connected GitHub tools cannot change repository visibility. A repository administrator must perform that step.
+Public repository visibility is complete. Prepare the exact pilot package for review.
 Approve the exact release asset before publishing it. Keep `INSTALL_ENABLED = False` until qualification and enablement review pass.
 
 ## How fixed release assets work
