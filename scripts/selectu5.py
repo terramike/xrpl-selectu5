@@ -29,6 +29,132 @@ DEFAULT_SKILLS_DIR = os.path.expanduser("~/workspace/skills")
 MAX_ARCHIVE_BYTES = 25 * 1024 * 1024
 SECRET_NAME = re.compile(r"(seed|secret|\.pem$|\.key$|id_rsa)", re.I)
 
+ID_RE = re.compile(r"^xrpl-[a-z0-9]+(?:-[a-z0-9]+)*$")
+SHOWCASE_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$")
+COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+CORE_VERSION_RE = re.compile(r"^>=\d+\.\d+\.\d+$")
+RESERVED_CORE_IDS = {"xrpl", "xrpl-muse", "xrpl-muse-skill"}
+CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+MAX_ENTRIES = 200
+
+
+class RegistryError(ValueError):
+    pass
+
+
+def esc(text):
+    """Escape control characters so catalog text cannot drive the terminal."""
+    return CONTROL_RE.sub(lambda m: "\\x%02x" % ord(m.group(0)), str(text))
+
+
+def _check_text(value, field, limit):
+    if not isinstance(value, str) or not value or len(value) > limit:
+        raise RegistryError(f"{field}: must be text of 1..{limit} chars")
+    if CONTROL_RE.search(value):
+        raise RegistryError(f"{field}: control characters are not allowed")
+
+
+def validate_registry(reg):
+    if not isinstance(reg, dict):
+        raise RegistryError("registry: top level must be an object")
+    if reg.get("schema") != "selectu5-registry/1":
+        raise RegistryError(f"registry: unsupported schema {reg.get('schema')!r}")
+    entries = reg.get("entries")
+    if not isinstance(entries, list) or not entries or len(entries) > MAX_ENTRIES:
+        raise RegistryError("registry: entries must be a list of 1..200 items")
+    seen = {}
+    for e in entries:
+        if not isinstance(e, dict):
+            raise RegistryError("registry: each entry must be an object")
+        eid = e.get("id")
+        if not isinstance(eid, str) or CONTROL_RE.search(eid or ""):
+            raise RegistryError("entry id: missing or unsafe")
+        low = eid.lower()
+        if low in seen:
+            raise RegistryError(f"entry id {eid!r}: duplicate identifier (case-insensitive)")
+        seen[low] = eid
+        kind = e.get("kind")
+        if kind not in ("core", "skill", "showcase"):
+            raise RegistryError(f"{eid}: unsupported kind {kind!r}")
+        if eid in RESERVED_CORE_IDS and kind != "core":
+            raise RegistryError(f"{eid}: reserved core identifier cannot be kind {kind!r}")
+        if kind in ("core", "skill") and not ID_RE.match(eid):
+            raise RegistryError(f"{eid}: installable id must match xrpl-<name>")
+        if kind == "showcase" and not SHOWCASE_ID_RE.match(eid):
+            raise RegistryError(f"{eid}: showcase id is unsafe")
+        if e.get("access") not in ("read", "propose"):
+            raise RegistryError(f"{eid}: unsupported access {e.get('access')!r}")
+        version = e.get("version")
+        if kind in ("core", "skill"):
+            if not isinstance(version, str) or not VERSION_RE.match(version):
+                raise RegistryError(f"{eid}: version must be MAJOR.MINOR.PATCH")
+        else:
+            _check_text(version, f"{eid} version", 32)
+            if "/" in version or "\\" in version:
+                raise RegistryError(f"{eid}: version cannot contain a path separator")
+        _check_text(e.get("name"), f"{eid} name", 120)
+        _check_text(e.get("author"), f"{eid} author", 80)
+        _check_text(e.get("purpose"), f"{eid} purpose", 400)
+        repo = e.get("repo")
+        _check_text(repo, f"{eid} repo", 300)
+        if not repo.startswith("https://"):
+            raise RegistryError(f"{eid}: repo must be an https URL")
+        _check_text(e.get("install"), f"{eid} install", 400)
+        cv = e.get("core_version")
+        if cv is not None and (not isinstance(cv, str) or not CORE_VERSION_RE.match(cv)):
+            raise RegistryError(f"{eid}: core_version must look like >=1.2.3")
+        ref = e.get("ref")
+        if ref is not None and (not isinstance(ref, str) or CONTROL_RE.search(ref) or "/" in ref or "\\" in ref):
+            raise RegistryError(f"{eid}: ref is unsafe")
+        perm = e.get("permissions")
+        if not isinstance(perm, dict):
+            raise RegistryError(f"{eid}: permissions must be an object")
+        for key in ("commands", "files"):
+            val = perm.get(key)
+            if not isinstance(val, list) or not val or any(not isinstance(x, str) or CONTROL_RE.search(x) or len(x) > 200 for x in val):
+                raise RegistryError(f"{eid}: permissions.{key} must be a list of short text items")
+        for key in ("network", "signs"):
+            _check_text(perm.get(key), f"{eid} permissions.{key}", 300)
+        if e.get("notes") is not None:
+            _check_text(e["notes"], f"{eid} notes", 400)
+        if e.get("archive") is not None:
+            raise RegistryError(f"{eid}: archive overrides are not allowed in a catalog")
+    return reg
+
+
+def parse_version(text):
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$", str(text or ""))
+    if not m:
+        return None
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) or "")
+
+
+def validate_destination(skills_dir, entry_id):
+    """Return the canonical target path or raise RegistryError. No mutation."""
+    root = os.path.realpath(skills_dir)
+    home = os.path.realpath(os.path.expanduser("~"))
+    forbidden = [os.path.join(home, ".xrpl"),
+                 os.path.realpath(os.environ.get("SELECTU5_CORE_DIR", os.path.expanduser("~/workspace/xrpl-muse-skill")))]
+    for bad in forbidden:
+        if root == bad or root.startswith(bad + os.sep):
+            raise RegistryError("skills root cannot sit inside the core or credential directory")
+    if os.path.islink(skills_dir):
+        raise RegistryError("skills root cannot be a symlink")
+    target = os.path.join(root, entry_id)
+    if os.path.dirname(os.path.realpath(target)) != root and os.path.lexists(target):
+        raise RegistryError("target escapes the skills root")
+    if os.path.islink(target):
+        raise RegistryError("target cannot be a symlink")
+    if os.path.lexists(target) and not os.path.isdir(target):
+        raise RegistryError("target exists and is not a directory")
+    if os.path.isdir(root):
+        for name in os.listdir(root):
+            if name != entry_id and name.lower() == entry_id.lower():
+                raise RegistryError("target collides with an existing folder on case-insensitive filesystems")
+    return target
+
+
 FRONTMATTER = re.compile(r"^---\s*\n(.*?)\n---", re.S)
 FIELD = re.compile(r"^(name|version|access):\s*[\"']?([^\"'\n]+)[\"']?\s*$", re.M)
 
@@ -53,9 +179,7 @@ def load_registry():
     for src in candidates:
         try:
             reg = json.loads(read_source(src).decode("utf-8"))
-            if reg.get("schema") != "selectu5-registry/1":
-                raise ValueError(f"bad schema: {reg.get('schema')!r}")
-            return reg, src
+            return validate_registry(reg), src
         except Exception as exc:
             errors.append(f"{src}: {exc}")
     print(f"xrpl-selectu5 {VERSION}: cannot read any registry ({'; '.join(errors)})", file=sys.stderr)
@@ -72,15 +196,21 @@ def local_skills(skills_dir):
     if not os.path.isdir(skills_dir):
         return found
     for name in sorted(os.listdir(skills_dir)):
-        if not name.startswith("xrpl"):
+        if not name.startswith("xrpl") or ".bak-" in name or name.startswith("."):
             continue
-        md = os.path.join(skills_dir, name, "SKILL.md")
-        if not os.path.isfile(md):
+        path = os.path.join(skills_dir, name)
+        if os.path.islink(path) or not os.path.isdir(path):
+            continue
+        md = os.path.join(path, "SKILL.md")
+        if os.path.islink(md) or not os.path.isfile(md):
             continue
         try:
-            fields = parse_manifest(open(md, encoding="utf-8").read(4096))
+            with open(md, encoding="utf-8") as fh:
+                fields = parse_manifest(fh.read(65536))
         except Exception:
             continue
+        if fields.get("name") and fields["name"] != name and not (name == "xrpl" and fields["name"] == "xrpl-muse-skill"):
+            fields["version"] = "unknown"
         found[name] = {"version": fields.get("version", "unknown"), "path": os.path.join(skills_dir, name)}
     for folder, entry_id in {"xrpl": "xrpl-muse-skill"}.items():
         if folder in found and entry_id not in found:
@@ -102,16 +232,16 @@ def get_entry(reg, entry_id):
 def permissions_card(e):
     perm = e["permissions"]
     lines = [
-        f"purpose: {e['purpose']}",
-        f"repo / page: {e['repo']}",
+        f"purpose: {esc(e['purpose'])}",
+        f"repo / page: {esc(e['repo'])}",
         "permissions:",
-        f"  core commands: {'; '.join(perm['commands'])}",
-        f"  files: {'; '.join(perm['files'])}",
-        f"  network: {perm['network']}",
-        f"  signs: {perm['signs']}",
+        f"  core commands: {'; '.join(esc(x) for x in perm['commands'])}",
+        f"  files: {'; '.join(esc(x) for x in perm['files'])}",
+        f"  network: {esc(perm['network'])}",
+        f"  signs: {esc(perm['signs'])}",
     ]
     if e.get("notes"):
-        lines.append(f"notes: {e['notes']}")
+        lines.append(f"notes: {esc(e['notes'])}")
     return "\n".join(lines)
 
 
@@ -128,7 +258,7 @@ def cmd_list(reg, local, source):
             state = " — showcase, not an install"
         print(f"\n[{e['id']}] {e['name']} — registry {e['version']}{state}")
         print(f"  access: {e['access']} · kind: {e['kind']} · by {e['author']}")
-        print(f"  {e['purpose']}")
+        print(f"  {esc(e['purpose'])}")
     return 0
 
 
@@ -164,37 +294,56 @@ def cmd_installed(local, source):
 
 def cmd_check(reg, local, source):
     header(source)
-    updates, current, missing = [], [], []
+    updates, current, missing, newer, unknown = [], [], [], [], []
     for e in reg["entries"]:
         if e["kind"] == "showcase":
             continue
         have = local.get(e["id"])
         if not have:
             missing.append(e)
-        elif have["version"] in ("unknown", e["version"]):
-            current.append(e)
-        else:
+            continue
+        hv, rv = parse_version(have["version"]), parse_version(e["version"])
+        if hv is None:
+            unknown.append((e, have["version"]))
+        elif hv < rv:
             updates.append((e, have["version"]))
+        elif hv > rv:
+            newer.append((e, have["version"]))
+        else:
+            current.append(e)
     if updates:
         print("\nupdates available (nothing installed — your word first):")
         for e, have in updates:
-            print(f"  {e['id']}: {have} -> {e['version']} — {e['repo']}")
+            print(f"  {e['id']}: {have} -> {e['version']} — {esc(e['repo'])}")
+    if newer:
+        print("\nnewer than the catalog (no downgrade is offered):")
+        for e, have in newer:
+            print(f"  {e['id']}: installed {have}, catalog {e['version']}")
+    if unknown:
+        print("\ninstalled, version unknown or invalid (not claimed current):")
+        for e, have in unknown:
+            print(f"  {e['id']}: {esc(have)}")
     if missing:
         print("\nlisted, not installed:")
         for e in missing:
-            print(f"  {e['id']} {e['version']} — {e['purpose']}")
+            print(f"  {e['id']} {e['version']} — {esc(e['purpose'])}")
     if current:
         print("\ncurrent:")
         for e in current:
             print(f"  {e['id']} {e['version']}")
-    if not updates and not missing:
+    if not updates and not missing and not newer and not unknown:
         print("\nEverything listed is installed and current.")
     print("\nAn update notice is information, not an install.")
     return 0
 
 
 def fetch_archive(e):
-    url = e.get("archive") or f"{e['repo'].rstrip('/')}/archive/{e['ref']}.zip"
+    # Test transport only: a named local fixture replaces the network fetch.
+    # Production catalogs cannot carry archive overrides (validator rejects them).
+    if os.environ.get("SELECTU5_TEST_MODE") == "1" and os.environ.get("SELECTU5_TEST_ARCHIVE"):
+        url = os.environ["SELECTU5_TEST_ARCHIVE"]
+        return read_source(url), url
+    url = f"{e['repo'].rstrip('/')}/archive/{e['ref']}.zip"
     data = read_source(url)
     if len(data) > MAX_ARCHIVE_BYTES:
         raise ValueError(f"archive too large ({len(data)} bytes)")
@@ -311,10 +460,12 @@ def main():
     if args.cmd in (None, "version"):
         print(f"xrpl-selectu5 {VERSION}")
         return 0
+    skills_dir = os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
+    if args.cmd == "installed":
+        return cmd_installed(local_skills(skills_dir), "local inventory (no registry used)")
     reg, source = load_registry()
     if reg is None:
         return 1
-    skills_dir = os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
     local = local_skills(skills_dir)
     if args.cmd == "list":
         return cmd_list(reg, local, source)
