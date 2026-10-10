@@ -11,6 +11,7 @@
     "package_root": null,
     "private_authentication_required": true,
     "production_fetcher_used": "selectu5.fetch_distribution",
+    "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
     "repository": "terramike/xrpl-selectu5",
     "request_url": "https://github.com/terramike/xrpl-selectu5/archive/7db6c62951b552d15fa13cc09e1f083f073ca92a.zip",
     "reviewed_permissions": "Catalog browsing/inventory only for catalog-only candidate; installer permissions card reviewed in SKILL.md/SPEC.md.",
@@ -27,21 +28,24 @@
       "statement": "Production fetcher cannot retrieve the private Selectu5 artifact (HTTP 404); no authenticated private-artifact transport is implemented."
     },
     {
-      "id": "ci-exact-commit",
-      "severity": "evidence_pending",
-      "statement": "Linux/Windows CI for the final qualification PR head must be confirmed outside this token."
-    },
-    {
       "id": "license-and-controls",
       "severity": "decision_pending",
       "statement": "License selection and repository-control configuration remain Mike/maintainer decisions."
+    },
+    {
+      "id": "ci-harness-fix-head",
+      "severity": "evidence_pending",
+      "statement": "PR #2 head d721 CI is Mike-confirmed; the harness-fix head 104b8ed needs its own Linux/Windows confirmation (workflow now runs qualify.py on both)."
     }
   ],
   "candidate": {
+    "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
     "branch": "codex/selectu5-production-qualification",
-    "commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+    "commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
     "install_enabled": false,
     "license_decision": null,
+    "pr2_confirmed_ci_head": "d721d9a09d477e7304aa6d3f31e51fd7b3460642",
+    "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
     "repository_controls": {
       "current": "Private repo; branch protection read returned HTTP 403 (GitHub Pro/public required); Actions runs read returned HTTP 403 (token permission).",
       "proposed": "Protect main; require linux and windows checks; require 1 PR approval; dismiss stale approvals; require conversation resolution; block force pushes/deletion.",
@@ -56,7 +60,8 @@
   },
   "checks": [
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": null,
       "evidence_path": "docs/production/ACCEPTANCE.md",
@@ -67,6 +72,7 @@
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "reason": "code=0.2.3 manifest=0.2.3 catalog=0.2.3 install_enabled=False",
       "sentinels": [],
       "skipped": null,
@@ -74,7 +80,8 @@
       "test_overrides": []
     },
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": null,
       "evidence_path": "docs/production/ACCEPTANCE.md",
@@ -85,6 +92,7 @@
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "reason": "xrpl-view-export, xrpl-community-shows, xrpl-selectu5",
       "sentinels": [],
       "skipped": null,
@@ -92,7 +100,8 @@
       "test_overrides": []
     },
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": "python3 -m unittest discover -s tests",
       "evidence_path": "docs/production/ACCEPTANCE.md",
@@ -103,16 +112,71 @@
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
-      "reason": "......s.......................................................\n----------------------------------------------------------------------\nRan 62 tests in 10.726s\n\nOK (skipped=1)",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "......s.......................................................\n----------------------------------------------------------------------\nRan 62 tests in 10.351s\n\nOK (skipped=1)",
       "sentinels": [],
       "skipped": null,
       "status": "pass",
       "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness"
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
       ]
     },
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "synthetic",
+      "name": "dummy core binding",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "SELECTU5_CORE_DIR=/tmp/selectu5-qualify-h793ymtc/dummy-core; supplied core_version_text=0.14.1 read from dummy manifest by the harness",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "synthetic",
+      "name": "canonical plan destination",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "raw_skills=/tmp/selectu5-qualify-h793ymtc/./skills; canonical_destination=/tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo; plan_digest=8982fc806f52c1a061daad2fcff7197142ae905ea9a21ef09f14fb8d7ef8f33a",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": null,
       "evidence_path": "docs/production/ACCEPTANCE.md",
@@ -123,16 +187,21 @@
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
-      "reason": "ns\": \"Never.\"\n  },\n  \"repo\": \"https://github.com/terramike/xrpl-demo\",\n  \"version\": \"1.0.0\"\n}\nplan digest (sha256): 07691037f550b10238113caf37618021f433eb25b0bc5508343d1190c986e211\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.0 -> /tmp/selectu5-qualify-mwa8d4o_/skills/xrpl-demo\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run.",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "igest (sha256): 8982fc806f52c1a061daad2fcff7197142ae905ea9a21ef09f14fb8d7ef8f33a\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.0 -> /tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
       "sentinels": [],
       "skipped": null,
       "status": "pass",
       "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness"
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
       ]
     },
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": null,
       "evidence_path": "docs/production/ACCEPTANCE.md",
@@ -143,16 +212,21 @@
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
-      "reason": "56): 07691037f550b10238113caf37618021f433eb25b0bc5508343d1190c986e211\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-demo 1.0.0 is already installed with matching provenance. Nothing changed.",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "56): 8982fc806f52c1a061daad2fcff7197142ae905ea9a21ef09f14fb8d7ef8f33a\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-demo 1.0.0 is already installed with matching provenance. Nothing changed. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
       "sentinels": [],
       "skipped": null,
       "status": "pass",
       "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness"
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
       ]
     },
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": null,
       "evidence_path": "docs/production/ACCEPTANCE.md",
@@ -163,27 +237,33 @@
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
-      "reason": "sha256): d56098e1f0623c22d2997c7477af1d7ac83c8ee2d00ac65ac58aa4065a53d12e\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.1 -> /tmp/selectu5-qualify-mwa8d4o_/skills/xrpl-demo\nprevious version kept at: /tmp/selectu5-qualify-mwa8d4o_/skills/xrpl-demo.bak-1a1248260b4-059e53e17f2daa4f\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run.",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "nt consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.1 -> /tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo\nprevious version kept at: /tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo.bak-1a1248a411d-0c0cd226d6721fcf\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0) | active_version=1.0.1 provenance_version=1.0.1 provenance_digest=a71a41b4f98cd4bc0ee05abf41d327271f8218b3634a1607aced77d9cc50fce3 expected_v2_digest=a71a41b4f98cd4bc0ee05abf41d327271f8218b3634a1607aced77d9cc50fce3 | backup=xrpl-demo.bak-1a1248a411d-0c0cd226d6721fcf backup_version=1.0.0 backup_digest=817d946869d408a0495b6e1f4c14d55e415b88704a02f5dd4239b45c471587c3 expected_v1_digest=817d946869d408a0495b6e1f4c14d55e415b88704a02f5dd4239b45c471587c3",
       "sentinels": [],
       "skipped": null,
       "status": "pass",
       "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness"
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
       ]
     },
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": null,
       "evidence_path": "docs/production/ACCEPTANCE.md",
       "exit_code": null,
       "failed": null,
       "kind": "synthetic",
-      "name": "dummy core and credential sentinels unchanged",
+      "name": "dummy core and credential sentinels unchanged at end",
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
-      "reason": null,
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "Final hashes compared with the pre-operation hashes; per-operation read counts are recorded on each operation check.",
       "sentinels": [
         {
           "after": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab",
@@ -199,11 +279,15 @@
       "skipped": null,
       "status": "pass",
       "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness"
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
       ]
     },
     {
-      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "ci_url": null,
       "command": null,
       "evidence_path": "docs/production/ACCEPTANCE.md",
@@ -214,50 +298,60 @@
       "passed": null,
       "platform": "Linux",
       "python_version": "3.12",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
       "reason": "OSError: HTTP Error 404: Not Found",
       "sentinels": [],
       "skipped": null,
       "status": "blocked",
-      "test_overrides": []
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
+      ]
     },
     {
-      "candidate_commit": null,
-      "ci_url": null,
-      "command": "GitHub Actions tests workflow",
-      "evidence_path": null,
-      "exit_code": null,
-      "failed": null,
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "d721d9a09d477e7304aa6d3f31e51fd7b3460642",
+      "ci_url": "https://github.com/terramike/xrpl-selectu5/pull/2",
+      "command": "GitHub Actions tests workflow for PR #2",
+      "evidence_path": "PR #2 checks (verified by Mike 2026-10-09)",
+      "exit_code": 0,
+      "failed": 0,
       "kind": "live_operation",
-      "name": "exact-commit Linux CI",
-      "passed": null,
-      "platform": "Linux CI",
+      "name": "PR #2 exact-head CI (Mike-confirmed)",
+      "passed": 62,
+      "platform": "Linux and Windows",
       "python_version": "3.12",
-      "reason": "Actions runs are not readable with the current token (HTTP 403); confirm on the qualification PR head before merge.",
+      "qualification_code_commit": "d721d9a09d477e7304aa6d3f31e51fd7b3460642",
+      "reason": "Mike verified all four CI jobs passed for PR #2, including 62 Windows tests. This confirms the pre-harness-fix PR head; the harness code is now also wired into both CI jobs for the updated head.",
       "sentinels": [],
-      "skipped": null,
-      "status": "not_run",
+      "skipped": 0,
+      "status": "pass",
       "test_overrides": []
     },
     {
-      "candidate_commit": null,
-      "ci_url": null,
-      "command": "GitHub Actions tests workflow",
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "ci_url": "https://github.com/terramike/xrpl-selectu5/pull/2",
+      "command": "GitHub Actions tests workflow including scripts/qualify.py",
       "evidence_path": null,
       "exit_code": null,
       "failed": null,
       "kind": "live_operation",
-      "name": "exact-commit Windows CI",
+      "name": "harness-fix exact-head CI",
       "passed": null,
-      "platform": "Windows CI",
+      "platform": "Linux and Windows",
       "python_version": "3.12",
-      "reason": "Actions runs are not readable with the current token (HTTP 403); confirm on the qualification PR head before merge.",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "reason": "New PR head must be confirmed in GitHub Actions; current token cannot read Actions/check-runs (HTTP 403).",
       "sentinels": [],
       "skipped": null,
       "status": "not_run",
       "test_overrides": []
     }
   ],
-  "created_at_utc": "2026-10-10T06:32:05.561452Z",
+  "created_at_utc": "2026-10-10T06:40:10.398151Z",
   "known_limits": [
     "Actual update qualification is synthetic until two production-transport artifacts exist.",
     "Process interruption evidence does not prove power-loss durability.",

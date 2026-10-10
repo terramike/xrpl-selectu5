@@ -10,7 +10,7 @@ Record `blocked` or `not_run` when a check cannot finish.
 - [x] Confirm matching code, manifest, and self catalog versions. Evidence: harness source inspection pass.
 - [x] Confirm that shipped code keeps the installer gate disabled. Evidence: `INSTALL_ENABLED = False`.
 - [x] Confirm all unqualified skill entries remain list-only. Evidence: harness list-only pass.
-- [ ] Attach successful Linux and Windows CI for the candidate. Status: not_run — Actions not readable with current token (HTTP 403); confirm on PR head.
+- [x] Attach successful Linux and Windows CI for the candidate. Evidence: Mike verified all four CI jobs passed for PR #2 head `d721d9a09d477e7304aa6d3f31e51fd7b3460642`, including 62 Windows tests (2026-10-09). Harness-fix head `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740` still needs its own exact-head confirmation; workflow now runs `scripts/qualify.py` on Linux and Windows.
 - [x] Check offline listing, inventory, permissions cards, and update notices. Evidence: repository suite + local CLI checks.
 - [x] Check unavailable catalog fallback and invalid catalog refusal. Evidence: repository suite.
 - [x] Check that installation refusal fetches no artifact. Evidence: repository suite disabled-gate tests.
@@ -38,6 +38,9 @@ A transport blocker prevents installer release. It does not prevent a catalog-on
 ## Isolated qualification
 
 - [x] Record disposable roots and all function overrides. Evidence: `scripts/qualify.py` and harness output.
+- [x] Test qualification-harness plan construction from the canonical validated destination. Evidence: harness `canonical plan destination` pass under a raw `/./` skills path.
+- [x] Record every harness override. Evidence: `scripts/qualify.py` records gate injection, synthetic fetcher, trusted-catalog injection, and supplied dummy-core version.
+- [x] Test synthetic no-op with no fetch and no mutation, update identity, and preserved backup contents. Evidence: harness checks pass locally; both CI jobs now run the harness.
 - [ ] Test actual fresh installation with a canonical plan and exact version. Status: blocked — synthetic fresh install passed; actual artifact transport blocked.
 - [ ] Test matching-provenance no-op and differing-provenance refusal.
 - [ ] Test actual update between two qualified versions, or mark it incomplete. Status: incomplete — synthetic update passed only.

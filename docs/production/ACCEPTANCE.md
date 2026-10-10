@@ -12,13 +12,14 @@ This report separates source inspection, synthetic checks, actual artifact check
 
 ## Stage 1 — catalog-only candidate
 
-Status: ready for Mike's review, subject to exact-commit CI.
+Status: PR #2 head `d721d9a09d477e7304aa6d3f31e51fd7b3460642` CI was verified by Mike on 2026-10-09: all four jobs passed, including 62 Windows tests. The harness-fix head `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740` still needs its own exact-head confirmation.
 
 Evidence:
 - Code, SKILL.md manifest, and self catalog entry all report `0.2.3`.
 - `INSTALL_ENABLED = False` verified in `scripts/selectu5.py`.
 - Bundled skill entries remain list-only where artifact facts are incomplete: `xrpl-view-export`, `xrpl-community-shows`, and `xrpl-selectu5` lack a complete reviewed commit + artifact SHA-256 + package-root set.
 - Local Linux run: `python3 -m unittest discover -s tests` = 62 tests, OK, 1 skipped (native Windows junction test). Local Python: 3.12.
+- CI confirmed by Mike for PR #2 head `d721d9a09d477e7304aa6d3f31e51fd7b3460642`: all four CI jobs passed, including 62 Windows tests. Alfred's token still cannot read Actions/check-runs (HTTP 403), so this is recorded as Mike-confirmed, not token-read.
 - Offline listing, permissions cards, inventory, and update notices are covered by the repository suite and local CLI checks.
 - GitHub workflow uses `actions/checkout@v4` and `actions/setup-python@v5` with Python 3.12 on Linux and Windows. The project has no third-party Python dependencies; imports are standard library only. GitHub's official Python workflow documentation still uses these action majors in its examples.
 - `CHANGELOG.md` and `docs/production/RELEASE-NOTES-CATALOG-ONLY.md` added. UNC/network-share roots are excluded from production support until a native UNC pilot passes.
@@ -55,16 +56,17 @@ Blocker classification: transport blocker for artifact pilot and installer relea
 ## Stage 3 — qualification harness
 
 Harness: `scripts/qualify.py`, separate from the production CLI.
-It creates its own disposable root, refuses to use shipped defaults for installation, records the override `install_enabled=True` passed only to `cmd_install` inside the harness, and never changes shipped `INSTALL_ENABLED`.
+It creates its own disposable root, refuses to use shipped defaults for installation, records every override (install gate injection, synthetic fetcher, trusted-catalog injection, and supplied core version), and never changes shipped `INSTALL_ENABLED`. Plans are built only from `validate_destination()` canonical destinations, including under a raw skills path containing `/./`. The harness is now wired into both Linux and Windows CI jobs.
 
 Observed local harness result (`/tmp/selectu5-qual-evidence.json` during the run):
 - Source versions and gate: pass.
 - Unqualified entries list-only: pass.
 - Repository test suite: pass (62 tests, 1 skipped on Linux).
-- Synthetic fresh install via `cmd_install`: pass.
-- Synthetic matching-provenance no-op: pass.
-- Synthetic update with backup preservation: pass.
-- Dummy core and credential sentinels unchanged: pass.
+- Canonical plan destination under a `/./` raw path: pass.
+- Synthetic fresh install via `cmd_install`: pass (one synthetic fetch).
+- Synthetic matching-provenance no-op: pass (zero fetches; disposable skills tree unchanged).
+- Synthetic update with backup preservation: pass (active identity is 1.0.1 with the v2 digest; backup manifest/provenance remain 1.0.0 with the v1 digest).
+- Dummy core binding: `SELECTU5_CORE_DIR` points at the dummy core; the supplied core version is read from its manifest by the harness. Sentinel hashes are checked after each operation; dummy-core manifest reads during an operation are distinguished from credential-sentinel reads, which must be zero.
 - Actual production fetch: blocked (HTTP 404 above).
 
 Synthetic checks cannot satisfy actual artifact checkboxes. Actual update qualification remains incomplete until two artifacts are retrievable through the production transport. The repository suite retains process-death, repeat-recovery, invalid-provenance, lock, wrong-digest, unsafe-archive, invalid-manifest, core-incompatibility, transport-deadline, 150-transaction history, and Windows-boundary tests; Windows-native assertions require exact-commit Windows CI.
@@ -99,7 +101,7 @@ Proposed operator actions and return paths (each needs Mike's separate approval)
 
 ## Readiness summary
 
-- Catalog-only release: **ready for review** after exact-commit Linux/Windows CI is confirmed for the qualification PR head.
+- Catalog-only release: **ready for review**. PR #2 head CI is Mike-confirmed; the harness-fix head still needs its own Linux/Windows confirmation before merge.
 - Artifact pilot: **blocked** by private-artifact production transport (HTTP 404); no S/D/C qualification claimed.
 - Installer enablement: **not approved** and remains disabled.
 - Public visibility: **not approved**.
