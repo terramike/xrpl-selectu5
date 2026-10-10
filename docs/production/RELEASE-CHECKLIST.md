@@ -125,3 +125,14 @@ Historical evidence in this repository does not claim results for a future commi
 - [x] Operator actions and return paths recorded in `docs/production/OPERATOR-ACTIONS.md`.
 - [ ] Merge PR #5 and confirm Windows CI runs the actual-artifact harnesses green.
 - [ ] Merge PR #9 (catalog C) as Mike's separate decision.
+
+## Final-head reconciliation
+
+- [x] Confirm Stage 3 Linux and Windows push and pull-request CI for PR #5 head `e84f3f07f8648fea26d264bc488d4ef57ca9fff6`.
+- [x] Confirm full backup comparison and active package bytes after update and interruption recovery.
+- [x] Retain Stage 3 evidence for both platforms. See the run links in `evidence.json`.
+- [ ] Obtain required review and merge PR #5, PR #10, and PR #9. Reconcile overlapping evidence files during merge.
+- [ ] Review host consent, catalog authority, and credential-read evidence before installer enablement.
+- [ ] Obtain Mike's separate approval for the exact installer enablement change.
+
+Historical unchecked items above describe earlier candidates. This section records the final Stage 3 follow-up results.

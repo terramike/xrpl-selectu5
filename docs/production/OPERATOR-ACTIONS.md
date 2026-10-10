@@ -14,10 +14,10 @@ maintainer; Alfred's automation token cannot dispatch workflows).
 4. Run `release-publish` with the prep run ID and the approved binding.
 5. Confirm the workflow's post-publish digest verification passed.
 
-Return path: delete the release (with release immutability enabled,
-deleting a published release may be restricted — withdraw the catalog
-entry first, then delete the tag). Installed packages and backups are
-never touched by release deletion.
+Return path: withdraw the affected catalog entry. Publish corrected bytes
+under a new version through the same review process. Preserve the old
+release identities for audit. Withdrawal does not change installed
+packages or backups.
 
 ## Withdraw a catalog entry
 
@@ -25,9 +25,12 @@ Operator: maintainer, via a registry pull request.
 
 Set the entry back to list-only (clear `artifact_sha256`, `package_root`,
 and `distribution`; keep identification fields). Merging the change makes
-the entry non-installable in future catalogs and stops update offers.
+the entry list-only in future reviewed catalogs. Version comparison can
+still show an update notice; withdrawal does not suppress that notice.
 Installed packages and their backups are preserved by design; nothing is
-deleted from a user's skills folder.
+deleted from a user's skills folder. Existing bundled catalogs retain their
+old records until clients receive a reviewed catalog update. A remote
+catalog change does not revoke an old client's local installation authority.
 
 Return path: restore the recorded S/D/root/distribution fields in a
 follow-up pull request.
@@ -36,12 +39,18 @@ follow-up pull request.
 
 Operator: the user, or Alfred with the user's approval, on that machine.
 
-Run any Selectu5 command against the same skills folder. Recovery runs
-before new work under the process lock: it restores the previous active
-package from its backup, or finishes from preserved package content, and
-only then continues. If content is ambiguous, preserve the staging,
-recovery, and backup folders untouched and inspect them before any
-deletion.
+1. Preserve the active package, staging, recovery journals, and backups.
+2. Record the skills root and inspect the unresolved transaction.
+3. Do not use `list`, `installed`, or `check-updates` as recovery commands.
+   These commands do not run transaction recovery.
+4. Recovery runs inside `install_package`, under the process lock, before
+   a new installation transaction. The shipped CLI cannot reach this step
+   while `INSTALL_ENABLED = False`.
+5. Keep recovery work in the isolated harness until a real installation
+   has its own approval. After enablement, review the exact destination,
+   version, and plan before an approved install attempt.
+6. If recovery refuses ambiguous content, keep all content and journals.
+   Request a reviewed repair procedure before any manual changes.
 
 Return path: the preserved backup (`<id>.bak-*`) is the previous active
 package; journals under `.selectu5-recovery` record each step.

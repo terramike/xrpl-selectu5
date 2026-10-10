@@ -147,3 +147,15 @@ These changes do not qualify private artifact retrieval or enable installation.
 - Remaining decisions: PR #5 merge + Windows CI confirmation, PR #9 merge,
   and any installer enablement (separate decision, out of scope here).
   `INSTALL_ENABLED = False` remains the shipped gate.
+
+## Stage 3 final-head evidence reconciliation
+
+PR #5 head `e84f3f07f8648fea26d264bc488d4ef57ca9fff6` passed all four Linux and Windows push and pull-request jobs.
+The push checkout was that head. The pull-request checkout was `6f6dda89816f5e7326d32a9d3cda98809b687c96`.
+Actual retrieval, fresh installation, update, interruption recovery, and no-op passed on both platforms.
+The follow-up checks complete backup contents and active package bytes. CI retains Stage 3 evidence for both platforms.
+
+CI: https://github.com/terramike/xrpl-selectu5/actions/runs/38042700935 and https://github.com/terramike/xrpl-selectu5/actions/runs/38042702810.
+Earlier head results remain historical evidence. Stage 3 has passed; PR #5 still requires review and merge.
+Review host consent, catalog authority, and credential-read evidence before a separate installer enablement decision.
+Unchanged sentinel hashes do not establish zero reads. The shipped installer remains disabled.
