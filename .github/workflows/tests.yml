@@ -12,6 +12,18 @@ jobs:
           python-version: "3.12"
       - name: Run repository tests
         run: python -m unittest discover -s tests -v
+      - name: Run qualification harness
+        run: python scripts/qualify.py --source-commit 7db6c62951b552d15fa13cc09e1f083f073ca92a --qualification-commit ${{ github.sha }} --output-json qualification-evidence.json --output-md qualification-evidence.md
+      - name: Retain qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-${{ github.job }}-${{ github.sha }}
+          path: |
+            qualification-evidence.json
+            qualification-evidence.md
+          if-no-files-found: error
+          retention-days: 14
   windows:
     runs-on: windows-latest
     steps:
@@ -21,3 +33,15 @@ jobs:
           python-version: "3.12"
       - name: Run repository tests
         run: python -m unittest discover -s tests -v
+      - name: Run qualification harness
+        run: python scripts/qualify.py --source-commit 7db6c62951b552d15fa13cc09e1f083f073ca92a --qualification-commit ${{ github.sha }} --output-json qualification-evidence.json --output-md qualification-evidence.md
+      - name: Retain qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-${{ github.job }}-${{ github.sha }}
+          path: |
+            qualification-evidence.json
+            qualification-evidence.md
+          if-no-files-found: error
+          retention-days: 14

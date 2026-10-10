@@ -35,14 +35,17 @@ This handoff does not authorize them.
 
 ## Continuity record
 
-Codex must update this section before a pause or the end of a session.
+- Working branch: `codex/selectu5-production-qualification`, PR #2.
+- Historical code commit: `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740`.
+- Verified CI head: `e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d`; all four jobs passed, including both harness runs.
+- Follow-up changes: complete backup snapshots, operation-specific overrides, corruption regressions, and retained CI evidence.
+- Local follow-up result: 66 tests completed, one native Windows test skipped, no failures.
+- Final merge condition: successful Linux and Windows checks for the submitted follow-up commit.
+- Evidence: `docs/production/ACCEPTANCE.md`, `docs/production/evidence.json`, and retained per-platform CI artifacts.
+- Selected artifact S: `7db6c62951b552d15fa13cc09e1f083f073ca92a`; digest D and catalog C remain unqualified.
+- Remaining blockers: private artifact retrieval, actual installation/update qualification, license, repository controls, and release review.
+- Next action after merge: prepare the reviewed artifact-distribution choice while the shipped gate remains disabled.
 
-- Working branch and candidate commit: Not started.
-- Completed stages and evidence paths: Repair baseline only.
-- Commands and latest results: See `REPAIR-REPORT.md` and PR #1.
-- Artifact source S, digest D, and catalog C: Not selected.
-- Current blockers: License, repository controls, artifact qualification, and production review.
-- Next independent action: Create a qualification branch and inspect the release checklist.
-- Next decision needed from Mike: None until the concrete review package is ready.
-
-Keep this record concise. Preserve actual identities, unresolved failures, and the next action.
+Mike authorized these follow-up changes and merging PR #2 after successful checks.
+Publication, visibility, and installer enablement remain separate decisions.
+Update this record before another pause. Preserve the tested identities and unresolved blockers.
