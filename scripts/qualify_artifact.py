@@ -43,14 +43,28 @@ def file_sha(path):
         return sha(fh.read())
 
 
+def snapshot_key(path, root):
+    """Normalize a snapshot key to forward slashes so it can be compared
+    with ZIP member names on every platform (Windows os.path uses \\)."""
+    rel = os.path.relpath(path, root)
+    return rel.replace(os.sep, "/").replace("\\", "/")
+
+
 def snapshot_tree(root):
     snap = {}
     for dp, dns, fns in os.walk(root):
         dns.sort()
         for fn in sorted(fns):
             p = os.path.join(dp, fn)
-            snap[os.path.relpath(p, root)] = file_sha(p)
+            snap[snapshot_key(p, root)] = file_sha(p)
     return snap
+
+
+def tree_diff(expected, actual):
+    missing = sorted(set(expected) - set(actual))
+    unexpected = sorted(set(actual) - set(expected))
+    mismatched = sorted(k for k in set(expected) & set(actual) if expected[k] != actual[k])
+    return missing, unexpected, mismatched
 
 
 def capture(fn):
@@ -175,8 +189,10 @@ def main():
                     expected[info.filename[len(args.package_root) + 1:]] = sha(zf.read(info.filename))
         actual = snapshot_tree(target)
         actual.pop(".selectu5-meta.json", None)
-        tree_ok = expected == actual
-        tree_detail = f"package files={len(expected)} installed files={len(actual)} match={tree_ok}"
+        missing, unexpected, mismatched = tree_diff(expected, actual)
+        tree_ok = not (missing or unexpected or mismatched)
+        tree_detail = (f"package files={len(expected)} installed files={len(actual)} match={tree_ok} "
+                       f"missing={missing} unexpected={unexpected} hash_mismatched={mismatched}")
     prov = {}
     meta_path = os.path.join(target, ".selectu5-meta.json")
     if os.path.exists(meta_path):
@@ -205,11 +221,14 @@ def main():
                                                         trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text=core_text))
     bad = dict(e); bad["artifact_sha256"] = "0" * 64
     bad_reg = {"schema": "selectu5-registry/1", "updated_at": "2026-10-10", "curator": "stage3-qualification", "entries": [bad]}
-    bad_plan, bad_digest = m.build_plan(bad, dest)
+    bad_skills = os.path.join(root, "skills-bad")
+    bad_dest = m.validate_destination(bad_skills, e["id"])
+    bad_plan, bad_digest = m.build_plan(bad, bad_dest)
     fetch_bad = ProdFetcher()
     rc_bad_digest, _, err_bad = capture(lambda: m.cmd_install(bad_reg, {}, e["id"], args.version, m.LOCAL_REGISTRY, bad_digest,
-                                                              skills_dir=os.path.join(root, "skills-bad"), fetcher=fetch_bad, install_enabled=True,
+                                                              skills_dir=bad_skills, fetcher=fetch_bad, install_enabled=True,
                                                               trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text=core_text))
+    bad_target_absent = not os.path.exists(os.path.join(bad_skills, e["id"]))
     badcore = dict(e); badcore["core_version"] = ">=99.0.0"
     bc_reg = {"schema": "selectu5-registry/1", "updated_at": "2026-10-10", "curator": "stage3-qualification", "entries": [badcore]}
     bc_plan, bc_digest = m.build_plan(badcore, dest)
@@ -218,20 +237,25 @@ def main():
                                                       skills_dir=skills, fetcher=fetch_bc, install_enabled=True,
                                                       trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text=core_text))
     rejected_ok = (rc_wrong_version == 1 and rc_wrong_plan == 1 and rc_bad_digest == 1 and rc_bad_core == 1
-                    and fetch3.calls == 0 and fetch_bc.calls == 0 and snapshot_tree(skills) == before and sentinels_ok())
+                    and fetch3.calls == 0 and fetch_bc.calls == 0 and fetch_bad.calls >= 1 and bad_target_absent
+                    and "digest" in err_bad.lower()
+                    and snapshot_tree(skills) == before and sentinels_ok())
     add("actual rejected requests", "actual_artifact", "pass" if rejected_ok else "fail",
-        f"wrong_version rc={rc_wrong_version}, wrong_plan rc={rc_wrong_plan}, wrong_digest rc={rc_bad_digest} (fetches={fetch_bad.calls}), bad_core rc={rc_bad_core} (fetches={fetch_bc.calls}); active tree unchanged={snapshot_tree(skills) == before}")
+        f"wrong_version rc={rc_wrong_version}, wrong_plan rc={rc_wrong_plan}, wrong_digest rc={rc_bad_digest} (fetches={fetch_bad.calls}, target_absent={bad_target_absent}, reason={err_bad.strip()[-120:]}), bad_core rc={rc_bad_core} (fetches={fetch_bc.calls}); active tree unchanged={snapshot_tree(skills) == before}")
 
     # Lock contention: hold a fresh root's lock and confirm the install is
     # refused there, while the already-qualified tree stays coherent.
     fetch4 = ProdFetcher()
     locked_root = os.path.join(root, "skills-locked"); os.makedirs(locked_root)
+    locked_dest = m.validate_destination(locked_root, e["id"])
+    _, locked_digest = m.build_plan(e, locked_dest)
     try:
         with m.skills_lock(locked_root):
-            rc_lock, out_lock, err_lock = capture(lambda: m.cmd_install(qreg, {}, e["id"], args.version, m.LOCAL_REGISTRY, digest,
+            rc_lock, out_lock, err_lock = capture(lambda: m.cmd_install(qreg, {}, e["id"], args.version, m.LOCAL_REGISTRY, locked_digest,
                                                                         skills_dir=locked_root, fetcher=fetch4, install_enabled=True,
                                                                         trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text=core_text))
-        lock_ok = rc_lock == 1 and not os.path.exists(os.path.join(locked_root, e["id"])) and snapshot_tree(skills) == before and sentinels_ok()
+        lock_ok = (rc_lock == 1 and "lock" in (out_lock + err_lock).lower()
+                   and not os.path.exists(os.path.join(locked_root, e["id"])) and snapshot_tree(skills) == before and sentinels_ok())
         lock_ev = (out_lock + err_lock).strip()[-250:]
     except Exception as exc:
         lock_ok, lock_ev = False, f"{type(exc).__name__}: {exc}"
@@ -252,7 +276,7 @@ def main():
     with open(args.output_md, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
     print(json.dumps({"root": root, "checks": len(checks), "statuses": [c["status"] for c in checks]}))
-    return 0 if all(c["status"] in ("pass", "blocked") for c in checks) else 1
+    return 0 if all(c["status"] == "pass" for c in checks) else 1
 
 
 if __name__ == "__main__":

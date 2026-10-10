@@ -36,7 +36,7 @@
     },
     {
       "artifact_source_commit_S": "5e157df7062e0528f04add18d4bc4f0cf2586b2e",
-      "evidence": "nt consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-selectu5 0.2.4 -> /tmp/selectu5-stage3-qmuq8vyo/skills/xrpl-selectu5\nxrpl-selectu5 0.2.4: install complete. The new skill shows its own version on its next run. | fetcher_calls=1 | package files=8 installed files=8 match=True | provenance={'artifact_sha256': '98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2', 'commit': '5e157df7062e0528f04add18d4bc4f0cf2586b2e', 'id': 'xrpl-selectu5', 'schema': 'selectu5-install/1', 'tx': '1a124d82699-f4a669cff4d6bf54', 'version': '0.2.4'}",
+      "evidence": "nt consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-selectu5 0.2.4 -> /tmp/selectu5-stage3-rd62ljp1/skills/xrpl-selectu5\nxrpl-selectu5 0.2.4: install complete. The new skill shows its own version on its next run. | fetcher_calls=1 | package files=8 installed files=8 match=True missing=[] unexpected=[] hash_mismatched=[] | provenance={'artifact_sha256': '98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2', 'commit': '5e157df7062e0528f04add18d4bc4f0cf2586b2e', 'id': 'xrpl-selectu5', 'schema': 'selectu5-install/1', 'tx': '1a125244970-2a514f8efed8e914', 'version': '0.2.4'}",
       "fetcher_calls": 1,
       "kind": "actual_artifact",
       "name": "actual fresh installation",
@@ -50,7 +50,7 @@
     },
     {
       "artifact_source_commit_S": "5e157df7062e0528f04add18d4bc4f0cf2586b2e",
-      "evidence": "674ee72bdc2260e\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-selectu5 0.2.4 is already installed with matching provenance. Nothing changed. | fetcher_calls=0 | tree_unchanged=True",
+      "evidence": "358bbc5f4a2d01e\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-selectu5 0.2.4 is already installed with matching provenance. Nothing changed. | fetcher_calls=0 | tree_unchanged=True",
       "fetcher_calls": 0,
       "kind": "actual_artifact",
       "name": "actual same-version no-op",
@@ -64,7 +64,7 @@
     },
     {
       "artifact_source_commit_S": "5e157df7062e0528f04add18d4bc4f0cf2586b2e",
-      "evidence": "wrong_version rc=1, wrong_plan rc=1, wrong_digest rc=1 (fetches=0), bad_core rc=1 (fetches=0); active tree unchanged=True",
+      "evidence": "wrong_version rc=1, wrong_plan rc=1, wrong_digest rc=1 (fetches=1, target_absent=True, reason=ctu5-stage3-rd62ljp1/skills-bad/xrpl-selectu5\nAny completed backup keeps its unique transaction name in the skills root.), bad_core rc=1 (fetches=0); active tree unchanged=True",
       "kind": "actual_artifact",
       "name": "actual rejected requests",
       "status": "pass",
@@ -77,7 +77,7 @@
     },
     {
       "artifact_source_commit_S": "5e157df7062e0528f04add18d4bc4f0cf2586b2e",
-      "evidence": "1c15eaa375d\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nRefused: --plan does not match the plan shown. Review the plan above and approve again. | fetcher_calls=0",
+      "evidence": "e any real install call.\nInstall failed: another Selectu5 install holds the skills-root lock\nactive location checked: /tmp/selectu5-stage3-rd62ljp1/skills-locked/xrpl-selectu5\nAny completed backup keeps its unique transaction name in the skills root. | fetcher_calls=1",
       "kind": "actual_artifact",
       "name": "actual lock contention refusal",
       "status": "pass",
@@ -89,7 +89,7 @@
       ]
     }
   ],
-  "disposable_root": "/tmp/selectu5-stage3-qmuq8vyo",
+  "disposable_root": "/tmp/selectu5-stage3-rd62ljp1",
   "known_limits": [
     "Actual update qualification needs a second distinct reviewed artifact.",
     "Windows actual-artifact run is executed by CI on the qualification branch.",
