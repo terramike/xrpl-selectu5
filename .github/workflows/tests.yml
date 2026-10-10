@@ -30,6 +30,19 @@ jobs:
             qualification-evidence.md
           if-no-files-found: error
           retention-days: 14
+      - name: Retain Stage 3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-evidence-${{ github.job }}
+          path: |
+            stage3-evidence.json
+            stage3-results.md
+            stage3-update-evidence.json
+            stage3-update-results.md
+            stage3-interrupt-evidence.json
+            stage3-interrupt-results.md
+          if-no-files-found: ignore
   windows:
     runs-on: windows-latest
     steps:

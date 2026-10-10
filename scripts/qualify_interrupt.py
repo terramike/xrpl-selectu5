@@ -19,11 +19,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import selectu5 as m  # noqa: E402
+from qualify_update import verify_backup, package_matches
 
 CHILD = r'''
 import hashlib, json, os, sys, time
 sys.path.insert(0, {scripts!r})
 import selectu5 as m
+from qualify import snapshot_tree
 
 cfg = json.load(open(sys.argv[1]))
 os.environ["SELECTU5_CORE_DIR"] = cfg["core_dir"]
@@ -50,6 +52,7 @@ rc = m.cmd_install(reg(e_from), {}, "xrpl-selectu5", cfg["from_version"], m.LOCA
 print("INSTALLED", rc, flush=True)
 if rc != 0:
     sys.exit(3)
+print("BASELINE " + json.dumps(snapshot_tree(os.path.join(skills, "xrpl-selectu5")), sort_keys=True), flush=True)
 
 orig = m._rename_dir
 count = {"n": 0}
@@ -108,8 +111,13 @@ def main():
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     moves = []
     killed_at = None
+    old_tree = None
+    child_lines = []
     for line in proc.stdout:
         line = line.strip()
+        child_lines.append(line)
+        if line.startswith("BASELINE "):
+            old_tree = json.loads(line[len("BASELINE "):])
         if line.startswith("MOVE"):
             moves.append(line)
             if len(moves) == 2:
@@ -141,11 +149,22 @@ def main():
         meta = json.load(open(meta_path, encoding="utf-8"))
     man = m.parse_manifest_strict(open(os.path.join(target, "SKILL.md"), encoding="utf-8").read()) if os.path.isdir(target) else {}
     guards_ok = all(file_sha(p) == h for p, h in guards.items())
-    coherent = rc == 0 and meta.get("version") == args.to_version and meta.get("artifact_sha256") == args.to_sha256 and man.get("version") == args.to_version and guards_ok
+    data = m.fetch_distribution(e_to)
+    m.verify_artifact(data, args.to_sha256)
+    backup_ok, backups = verify_backup(skills, "xrpl-selectu5", old_tree) if old_tree is not None else (False, [])
+    active_ok = package_matches(target, data, e_to["package_root"])
+    coherent = (rc == 0 and meta.get("version") == args.to_version and meta.get("artifact_sha256") == args.to_sha256
+                and meta.get("commit") == args.to_commit and man.get("version") == args.to_version
+                and guards_ok and backup_ok and active_ok)
     status = "pass" if (killed_at and coherent) else "fail"
-    evidence = {"schema": "selectu5-stage3-interrupt-evidence/1", "disposable_root": root,
+    evidence = {"schema": "selectu5-stage3-interrupt-evidence/1", "qualification_code_commit": os.environ.get("GITHUB_SHA"),
+                "installer_code_commit": os.environ.get("GITHUB_SHA"), "platform": sys.platform,
+                "catalog_commit_C": None, "catalog_authority": "injected qualification catalog",
+                "disposable_root": root,
                 "killed_at_move": killed_at, "moves_seen": moves, "mid_state_entries": mid_state,
+                "child_exit_code": proc.returncode, "child_output_tail": child_lines[-20:],
                 "recovery_install_rc": rc, "final_provenance": meta, "guards_unchanged": guards_ok,
+                "backup_matches_complete_baseline": backup_ok, "backups": backups, "active_matches_artifact": active_ok,
                 "checks": [{"name": "actual-artifact interruption at a directory move, then recovery", "kind": "actual_artifact", "status": status,
                             "evidence": f"killed at: {killed_at}; mid-state: {mid_state}; recovery rc={rc}; final active={meta.get('version')} sha={meta.get('artifact_sha256')} guards_ok={guards_ok}"}]}
     with open(args.output_json, "w", encoding="utf-8") as fh:

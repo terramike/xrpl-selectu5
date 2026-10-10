@@ -25,6 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import selectu5 as m  # noqa: E402
+from qualify import snapshot_tree as complete_snapshot
 
 OVERRIDES = [
     "install_enabled=True passed only to cmd_install inside this harness",
@@ -203,13 +204,13 @@ def main():
 
     # Same-version no-op: zero fetches, zero mutation.
     fetch2 = ProdFetcher()
-    before = snapshot_tree(skills)
+    before = complete_snapshot(skills)
     rc, out, err = capture(lambda: m.cmd_install(qreg, m.local_skills(skills), e["id"], args.version, m.LOCAL_REGISTRY, digest,
                                                  skills_dir=skills, fetcher=fetch2, install_enabled=True,
                                                  trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text=core_text))
-    noop_ok = rc == 0 and fetch2.calls == 0 and snapshot_tree(skills) == before and sentinels_ok()
+    noop_ok = rc == 0 and fetch2.calls == 0 and complete_snapshot(skills) == before and sentinels_ok()
     add("actual same-version no-op", "actual_artifact", "pass" if noop_ok else "fail",
-        (out + err).strip()[-250:] + f" | fetcher_calls={fetch2.calls} | tree_unchanged={snapshot_tree(skills) == before}", fetcher_calls=fetch2.calls)
+        (out + err).strip()[-250:] + f" | fetcher_calls={fetch2.calls} | tree_unchanged={complete_snapshot(skills) == before}", fetcher_calls=fetch2.calls)
 
     # Rejected requests: wrong version, wrong plan, wrong digest, bad core.
     fetch3 = ProdFetcher()
@@ -239,9 +240,9 @@ def main():
     rejected_ok = (rc_wrong_version == 1 and rc_wrong_plan == 1 and rc_bad_digest == 1 and rc_bad_core == 1
                     and fetch3.calls == 0 and fetch_bc.calls == 0 and fetch_bad.calls >= 1 and bad_target_absent
                     and "digest" in err_bad.lower()
-                    and snapshot_tree(skills) == before and sentinels_ok())
+                    and complete_snapshot(skills) == before and sentinels_ok())
     add("actual rejected requests", "actual_artifact", "pass" if rejected_ok else "fail",
-        f"wrong_version rc={rc_wrong_version}, wrong_plan rc={rc_wrong_plan}, wrong_digest rc={rc_bad_digest} (fetches={fetch_bad.calls}, target_absent={bad_target_absent}, reason={err_bad.strip()[-120:]}), bad_core rc={rc_bad_core} (fetches={fetch_bc.calls}); active tree unchanged={snapshot_tree(skills) == before}")
+        f"wrong_version rc={rc_wrong_version}, wrong_plan rc={rc_wrong_plan}, wrong_digest rc={rc_bad_digest} (fetches={fetch_bad.calls}, target_absent={bad_target_absent}, reason={err_bad.strip()[-120:]}), bad_core rc={rc_bad_core} (fetches={fetch_bc.calls}); active tree unchanged={complete_snapshot(skills) == before}")
 
     # Lock contention: hold a fresh root's lock and confirm the install is
     # refused there, while the already-qualified tree stays coherent.
@@ -255,7 +256,7 @@ def main():
                                                                         skills_dir=locked_root, fetcher=fetch4, install_enabled=True,
                                                                         trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text=core_text))
         lock_ok = (rc_lock == 1 and "lock" in (out_lock + err_lock).lower()
-                   and not os.path.exists(os.path.join(locked_root, e["id"])) and snapshot_tree(skills) == before and sentinels_ok())
+                   and not os.path.exists(os.path.join(locked_root, e["id"])) and complete_snapshot(skills) == before and sentinels_ok())
         lock_ev = (out_lock + err_lock).strip()[-250:]
     except Exception as exc:
         lock_ok, lock_ev = False, f"{type(exc).__name__}: {exc}"
@@ -264,8 +265,11 @@ def main():
     evidence = {"schema": "selectu5-stage3-evidence/1",
                 "artifact": {"id": args.entry_id, "version": args.version, "source_commit_S": args.source_commit,
                              "sha256_D": args.sha256, "asset_url": args.asset_url, "package_root": args.package_root},
+                "qualification_code_commit": os.environ.get("GITHUB_SHA"),
+                "installer_code_commit": os.environ.get("GITHUB_SHA"), "platform": sys.platform,
+                "catalog_commit_C": None, "catalog_authority": "injected qualification catalog",
                 "disposable_root": root, "test_overrides": OVERRIDES, "checks": checks,
-                "known_limits": ["Actual update qualification needs a second distinct reviewed artifact.", "Windows actual-artifact run is executed by CI on the qualification branch.", "Interruption/recovery is covered by the repository suite; the actual-artifact interruption run is recorded separately when executed."]}
+                "known_limits": ["Update and interruption evidence is recorded by separate actual-artifact harnesses.", "Platform acceptance requires the final qualification head to pass CI.", "The catalog is injected and the installer gate is overridden only for qualification."]}
     with open(args.output_json, "w", encoding="utf-8") as fh:
         json.dump(evidence, fh, indent=2, sort_keys=True)
     lines = ["# Selectu5 Stage 3 actual-artifact qualification", "",

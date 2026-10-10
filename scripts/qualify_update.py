@@ -17,6 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import selectu5 as m  # noqa: E402
+from qualify import snapshot_tree as complete_snapshot
 
 OVERRIDES = [
     "install_enabled=True passed only to cmd_install inside this harness",
@@ -32,13 +33,32 @@ def file_sha(path):
 
 
 def snapshot(root):
-    snap = {}
-    for dp, dns, fns in os.walk(root):
-        dns.sort()
-        for fn in sorted(fns):
-            p = os.path.join(dp, fn)
-            snap[os.path.relpath(p, root)] = file_sha(p)
-    return snap
+    return complete_snapshot(root)
+
+
+def verify_backup(skills, entry_id, before):
+    backups = sorted(d for d in os.listdir(skills) if d.startswith(entry_id + ".bak-"))
+    return (len(backups) == 1 and snapshot(os.path.join(skills, backups[0])) == before), backups
+
+
+def package_matches(target, data, package_root):
+    expected = {}
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        m.validate_archive(zf, package_root)
+        for info in zf.infolist():
+            if not info.is_dir():
+                expected[info.filename[len(package_root) + 1:]] = hashlib.sha256(zf.read(info)).hexdigest()
+    actual = {}
+    for dp, _, files in os.walk(target, followlinks=False):
+        for name in files:
+            path = os.path.join(dp, name)
+            rel = os.path.relpath(path, target).replace(os.sep, "/")
+            if rel == ".selectu5-meta.json":
+                continue
+            if m._is_redirect(path):
+                return False
+            actual[rel] = file_sha(path)
+    return expected == actual
 
 
 def capture(fn):
@@ -110,13 +130,23 @@ def main():
     _, plan_to = m.build_plan(e_to, dest)
     checks = []
 
+    from_data = m.fetch_distribution(e_from)
+    to_data = m.fetch_distribution(e_to)
+    m.verify_artifact(from_data, args.from_sha256)
+    m.verify_artifact(to_data, args.to_sha256)
+
     f1 = ProdFetcher()
     rc, out = capture(lambda: m.cmd_install(reg_of(e_from), {}, args.entry_id, args.from_version, m.LOCAL_REGISTRY, plan_from,
                                             skills_dir=skills, fetcher=f1, install_enabled=True,
                                             trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text="0.14.1"))
     meta1 = json.load(open(os.path.join(skills, args.entry_id, ".selectu5-meta.json"), encoding="utf-8"))
+    target = os.path.join(skills, args.entry_id)
+    old_tree = snapshot(target)
+    old_ok = (meta1.get("id") == args.entry_id and meta1.get("commit") == args.from_commit
+              and meta1.get("artifact_sha256") == args.from_sha256
+              and package_matches(target, from_data, e_from["package_root"]))
     checks.append({"name": "actual fresh installation of the earlier published asset", "kind": "actual_artifact",
-                   "status": "pass" if rc == 0 and meta1.get("version") == args.from_version and guards_ok() else "fail",
+                   "status": "pass" if rc == 0 and f1.calls == 1 and old_ok and meta1.get("version") == args.from_version and guards_ok() else "fail",
                    "evidence": out[-250:] + f" | fetcher_calls={f1.calls} | active={meta1.get('version')}"})
 
     f2 = ProdFetcher()
@@ -124,14 +154,11 @@ def main():
                                             skills_dir=skills, fetcher=f2, install_enabled=True,
                                             trusted_catalog=m.TRUSTED_INSTALL_SOURCE, core_version_text="0.14.1"))
     meta2 = json.load(open(os.path.join(skills, args.entry_id, ".selectu5-meta.json"), encoding="utf-8"))
-    backups = sorted(d for d in os.listdir(skills) if d.startswith(args.entry_id + ".bak-"))
-    backup_ok = False
-    if backups:
-        bmeta_path = os.path.join(skills, backups[0], ".selectu5-meta.json")
-        if os.path.exists(bmeta_path):
-            backup_ok = json.load(open(bmeta_path, encoding="utf-8")).get("version") == args.from_version
+    backup_ok, backups = verify_backup(skills, args.entry_id, old_tree)
+    active_ok = (meta2.get("id") == args.entry_id and meta2.get("commit") == args.to_commit
+                 and package_matches(target, to_data, e_to["package_root"]))
     checks.append({"name": "actual update between published assets", "kind": "actual_artifact",
-                   "status": "pass" if rc == 0 and meta2.get("version") == args.to_version and meta2.get("artifact_sha256") == args.to_sha256 and backup_ok and guards_ok() else "fail",
+                   "status": "pass" if rc == 0 and f2.calls == 1 and active_ok and meta2.get("version") == args.to_version and meta2.get("artifact_sha256") == args.to_sha256 and backup_ok and guards_ok() else "fail",
                    "evidence": out[-250:] + f" | fetcher_calls={f2.calls} | active={meta2.get('version')} sha={meta2.get('artifact_sha256')} backups={backups} backup_is_from={backup_ok}"})
 
     f3 = ProdFetcher()
@@ -153,6 +180,9 @@ def main():
     evidence = {"schema": "selectu5-stage3-update-evidence/1",
                 "from": {"version": args.from_version, "source_commit_S": args.from_commit, "sha256_D": args.from_sha256, "asset_url": args.from_url},
                 "to": {"version": args.to_version, "source_commit_S": args.to_commit, "sha256_D": args.to_sha256, "asset_url": args.to_url},
+                "qualification_code_commit": os.environ.get("GITHUB_SHA"),
+                "installer_code_commit": os.environ.get("GITHUB_SHA"), "platform": sys.platform,
+                "catalog_commit_C": None, "catalog_authority": "injected qualification catalog",
                 "disposable_root": root, "test_overrides": OVERRIDES, "checks": checks}
     with open(args.output_json, "w", encoding="utf-8") as fh:
         json.dump(evidence, fh, indent=2, sort_keys=True)

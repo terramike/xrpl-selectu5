@@ -84,3 +84,15 @@ actual-artifact, update, and interruption harnesses on Windows. The
 Windows failures found and fixed on the way: backslash snapshot keys,
 two vacuous checks (wrong-digest and lock) rebuilt on their own
 destinations, and proc.kill() for cross-platform termination.
+
+## Qualification evidence follow-up
+
+Head `d1b276b87bffee1c4f5a9a01501e6c5f44941247` included current main and passed all four CI jobs.
+A subsequent audit found that actual update qualification checked backup metadata without complete backup contents.
+The follow-up compares exactly one backup against the complete original tree, including directories, bytes, and file modes.
+It checks active package bytes and complete provenance after update and interrupted-update recovery.
+No-op checks now include empty directories and modes.
+Corruption, extra-backup, extra-directory, permission, and embedded-child syntax regressions cover these checks.
+CI retains Stage 3 evidence for Linux and Windows and records each checkout's qualification and installer identities.
+Use the final follow-up head's CI artifacts for acceptance. Earlier results remain historical evidence.
+The shipped installer remains disabled. Host consent, credential-read evidence, catalog authority, and release enablement still need review.
