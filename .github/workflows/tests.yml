@@ -20,6 +20,11 @@ jobs:
         run: python scripts/qualify_update.py --from-version 0.2.4 --from-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --from-sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --from-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --to-version 0.2.5 --to-commit 6b942346ea6ffaa86f71aa80cf1e741822c2dc31 --to-sha256 06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d --to-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip --output-json stage3-update-evidence.json --output-md stage3-update-results.md
       - name: Run Stage 3 actual interruption qualification
         run: python scripts/qualify_interrupt.py --output-json stage3-interrupt-evidence.json --output-md stage3-interrupt-results.md
+      - name: Run bootstrap qualification (candidate installs published predecessor)
+        shell: bash
+        run: |
+          python scripts/package.py --source-root . --inventory docs/production/package-inventory.json --out candidate.zip --record candidate-record.json
+          python scripts/qualify_bootstrap.py --client-zip candidate.zip --expect-install-version 0.2.5 --output-json bootstrap-evidence.json
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,6 +65,11 @@ jobs:
         run: python scripts/qualify_update.py --from-version 0.2.4 --from-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --from-sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --from-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --to-version 0.2.5 --to-commit 6b942346ea6ffaa86f71aa80cf1e741822c2dc31 --to-sha256 06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d --to-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip --output-json stage3-update-evidence.json --output-md stage3-update-results.md
       - name: Run Stage 3 actual interruption qualification
         run: python scripts/qualify_interrupt.py --output-json stage3-interrupt-evidence.json --output-md stage3-interrupt-results.md
+      - name: Run bootstrap qualification (candidate installs published predecessor)
+        shell: bash
+        run: |
+          python scripts/package.py --source-root . --inventory docs/production/package-inventory.json --out candidate.zip --record candidate-record.json
+          python scripts/qualify_bootstrap.py --client-zip candidate.zip --expect-install-version 0.2.5 --output-json bootstrap-evidence.json
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@v4

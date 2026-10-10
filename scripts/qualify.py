@@ -289,6 +289,51 @@ def main():
         fetcher_calls=fetch2.calls, backups=backups, backup_tree_unchanged=backup_tree_unchanged,
         overrides=OVERRIDES, **sent_extra)
 
+    # Rejected request under instrumentation (wrong digest): must fetch once,
+    # refuse on digest, write nothing, and read no credential sentinel.
+    v3 = zip_bytes("1.0.2")
+    e3 = dict(e2); e3["version"] = "1.0.2"; e3["artifact_sha256"] = "0" * 64
+    reg3 = {"schema": "selectu5-registry/1", "updated_at": "2026-10-09", "curator": "qualification", "entries": [e3]}
+    plan3, digest3, dest3 = canonical_plan(e3, raw_skills)
+    fetch3 = CountingFetcher(v3)
+    before_tree = snapshot_tree(skills)
+    rc, out, err, sent_ok, sent_detail, sent_extra = op("rejected", lambda: m.cmd_install(
+        reg3, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest3, skills_dir=raw_skills,
+        fetcher=fetch3, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+        core_version_text=bound_core_version))
+    rejected_ok = (rc != 0 and fetch3.calls == 1 and snapshot_tree(skills) == before_tree
+                   and "digest" in (out + err).lower() and sent_ok)
+    add("synthetic rejected request (wrong digest)", "synthetic", "pass" if rejected_ok else "fail",
+        (out + err).strip()[-300:] + " | " + sent_detail,
+        fetcher_calls=fetch3.calls, overrides=OVERRIDES, **sent_extra)
+
+    # Recovery under instrumentation: crash journal after target -> backup,
+    # then the next operation must recover and read no credential sentinel.
+    journal_dir = os.path.join(skills, ".selectu5-journal")
+    tx = "tx-qualify01"
+    bak_rec = os.path.join(skills, f"xrpl-demo.bak-{tx}")
+    os.makedirs(journal_dir, exist_ok=True)
+    journal = {"tx": tx, "state": "verified", "entry": "xrpl-demo", "version": "1.0.1",
+               "target": dest2, "staging": os.path.join(skills, f".selectu5-staging-{tx}"),
+               "backup": bak_rec, "had_existing": True}
+    m._write_journal(journal_dir, journal)
+    journal["state"] = "placing"
+    m._write_journal(journal_dir, journal)
+    os.replace(dest2, bak_rec)
+    journal["state"] = "published"
+    m._write_journal(journal_dir, journal)
+    fetch_rec = CountingFetcher(v2)
+    plan_r, digest_r, _ = canonical_plan(e2, raw_skills)
+    rc, out, err, sent_ok, sent_detail, sent_extra = op("recovery", lambda: m.cmd_install(
+        reg2, {}, "xrpl-demo", "1.0.1", m.LOCAL_REGISTRY, digest_r, skills_dir=raw_skills,
+        fetcher=fetch_rec, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+        core_version_text=bound_core_version))
+    active_after = m.local_skills(skills).get("xrpl-demo", {}).get("version")
+    recovery_ok = rc == 0 and active_after == "1.0.1" and sent_ok
+    add("synthetic recovery after interrupted publish", "synthetic", "pass" if recovery_ok else "fail",
+        (out + err).strip()[-300:] + " | " + sent_detail,
+        fetcher_calls=fetch_rec.calls, overrides=OVERRIDES, **sent_extra)
+
     final_sentinels = sentinel_state()
     add("dummy core and credential sentinels unchanged at end", "synthetic",
         "pass" if final_sentinels == base_sentinels else "fail",

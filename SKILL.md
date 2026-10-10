@@ -25,9 +25,10 @@ what is installed on this machine.
   only. Never installs.
 - `install <id>` — shows the permissions card and canonical plan,
   then stops. A real install requires both `--yes <version>` and
-  `--plan <plan-digest>` for the exact reviewed plan. During the audit
-  repair the shipped command refuses real installation. Core entries
-  are notice-only; Selectu5 never installs the core.
+  `--plan <plan-digest>` for the exact reviewed plan. Real installation
+  also requires `--offline`, which selects the bundled reviewed catalog
+  — the only install authority. Core entries are notice-only; Selectu5
+  never installs the core.
 - `version` — print the skill version.
 
 The registry is `registry/registry.json` in this repo. Only that
@@ -60,7 +61,7 @@ skills folder.
   update runs without the user's word for that exact item and version.
 - A showcase entry (Clavi5, Visu5) is not an install. Show its real
   next step: enroll or open the page.
-- Every output prints the version line: `xrpl-selectu5 0.2.5`.
+- Every output prints the version line: `xrpl-selectu5 0.2.6`.
 
 ## Requirements
 
