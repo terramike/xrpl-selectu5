@@ -68,7 +68,7 @@
       "id": "xrpl-community-shows",
       "name": "Community Shows",
       "kind": "skill",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "core_version": ">=0.14.1",
       "access": "read",
       "author": "terramike",
@@ -80,13 +80,13 @@
           "No core commands. Reads and submits shows only."
         ],
         "files": [
-          "Its own data/seed.json in offline test mode only."
+          "Its own data/shows-fixture.json in offline test mode only."
         ],
         "network": "https://shows-api.terramike.com (reads and show submissions).",
         "signs": "Never."
       },
-      "notes": "Companion repair on branch fix/selectu5-fixture-rename (v0.2.2, access frontmatter, data/shows-fixture.json). This 0.2.1 entry stays list-only until that release is reviewed and merged.",
-      "ref": "b2c8a7ebda8dd3be564241a309f4d337977fa51f",
+      "notes": "Companion repair merged to its main 2026-10-09 (v0.2.2, access: read, data/shows-fixture.json). Artifact digest not yet recorded; the fixed-artifact decision is pending, so this entry stays non-installable until the pre-release audit.",
+      "ref": "d0457fd53e1695a1b464bccc5391369eb7d5f7c3",
       "artifact_sha256": null,
       "package_root": null
     },
@@ -164,7 +164,7 @@
         "network": "None in v0.1 offline mode. v0.2 reads the registry file from this repo on GitHub.",
         "signs": "Never."
       },
-      "notes": "Pinned ref is the v0.2.0 release commit; refreshed with each release.",
+      "notes": "Repair merged to main 2026-10-09; repo stays private. Pinned ref is refreshed per release; installer gate stays disabled pending the pre-release audit.",
       "ref": "d97c6657932177e06e96a0f021d3d1c52a90b639",
       "artifact_sha256": null,
       "package_root": null

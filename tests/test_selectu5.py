@@ -52,7 +52,7 @@ class TestSelectu5(unittest.TestCase):
 
     def test_install_dry_run(self):
         r = run("install", "xrpl-community-shows"); self.assertEqual(r.returncode, 0)
-        self.assertIn("Dry run", r.stdout); self.assertIn("--yes 0.2.1", r.stdout)
+        self.assertIn("Dry run", r.stdout); self.assertIn("--yes 0.2.2", r.stdout)
 
     def test_install_yes_must_match(self):
         r = run("install", "xrpl-community-shows", "--yes", "9.9.9"); self.assertEqual(r.returncode, 1)
