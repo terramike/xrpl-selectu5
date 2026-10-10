@@ -14,6 +14,8 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Run qualification harness
         run: python scripts/qualify.py --source-commit 7db6c62951b552d15fa13cc09e1f083f073ca92a --qualification-commit ${{ github.sha }} --output-json qualification-evidence.json --output-md qualification-evidence.md
+      - name: Run Stage 3 actual-artifact qualification
+        run: python scripts/qualify_artifact.py --source-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --asset-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --package-root xrpl-selectu5-0.2.4 --version 0.2.4 --output-json stage3-evidence.json --output-md stage3-results.md
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -35,6 +37,8 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Run qualification harness
         run: python scripts/qualify.py --source-commit 7db6c62951b552d15fa13cc09e1f083f073ca92a --qualification-commit ${{ github.sha }} --output-json qualification-evidence.json --output-md qualification-evidence.md
+      - name: Run Stage 3 actual-artifact qualification
+        run: python scripts/qualify_artifact.py --source-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --asset-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --package-root xrpl-selectu5-0.2.4 --version 0.2.4 --output-json stage3-evidence.json --output-md stage3-results.md
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@v4

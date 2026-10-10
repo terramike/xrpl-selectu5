@@ -47,3 +47,20 @@ Installer enablement and exact release asset publication remain pending.
 
 Public repository visibility is authorized. Exact asset publication and installer enablement remain pending.
 Update this record before another pause. Preserve the tested identities and unresolved blockers.
+
+## 2026-10-10 — Stage 3 actual-artifact qualification started
+
+The v0.2.4 catalog-only prerelease is live at
+`https://github.com/terramike/xrpl-selectu5/releases/tag/v0.2.4` (repository is
+public; asset verified: 31,064 bytes, SHA-256
+`98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2`).
+`scripts/qualify_artifact.py` retrieves that asset through the production
+fetcher and exercises fresh installation, no-op, rejected requests, and lock
+contention in a disposable root. Linux evidence is recorded in
+`docs/production/STAGE3-RESULTS.md` and `stage3-evidence.json`; CI runs the
+same harness on Linux and Windows.
+
+Still open in Stage 3: an actual update (needs a second distinct reviewed
+artifact), an actual-artifact interruption run, and the Windows actual run.
+No catalog commit C exists yet, no entry is installable from the shipped
+client, and `INSTALL_ENABLED = False` remains the shipped gate.

@@ -129,3 +129,19 @@ Verified historical checks for `e86b2d7`:
 - Windows: https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075633
 
 These changes do not qualify private artifact retrieval or enable installation.
+
+## Stage 3 addendum — actual-artifact qualification (2026-10-10)
+
+The v0.2.4 fixed release asset is published (public catalog-only prerelease)
+and `scripts/qualify_artifact.py` now qualifies the **actual artifact**: the
+production fetcher retrieves the live release asset (redirect chain recorded),
+and fresh installation, same-version no-op, rejected requests, and lock
+contention run against those exact bytes in a disposable root. Linux evidence:
+`docs/production/STAGE3-RESULTS.md` and `stage3-evidence.json`. CI runs the
+same harness on Linux and Windows.
+
+Stage 3 remains **partial**: an actual update still needs a second distinct
+reviewed artifact, an actual-artifact interruption run is outstanding, and
+the Windows actual run comes from CI on the qualification branch. No catalog
+commit C exists, no entry is installable from the shipped client, and
+`INSTALL_ENABLED = False` remains the shipped gate.

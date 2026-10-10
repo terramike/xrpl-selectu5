@@ -107,7 +107,7 @@ Historical evidence in this repository does not claim results for a future commi
 - [x] Test changed asset locators, digests, plans, redirects, and malformed distribution entries locally. Evidence: `tests/test_fixed_assets.py`.
 - [ ] Record Mike's distribution repository, package contents, license, audience, and publication authority.
 - [ ] Prepare the exact pilot asset (S, D, package root) and later catalog commit C for Mike's review.
-- [ ] Complete actual artifact qualification on Linux and Windows (Stage 3).
+- [ ] Complete actual artifact qualification on Linux and Windows (Stage 3). Partial: v0.2.4 actual retrieval, fresh installation, no-op, rejected requests, and lock contention pass on Linux (Stage 3 evidence); update, actual interruption, and Windows actual runs remain.
 
 ## PR #3 audit fixes
 
