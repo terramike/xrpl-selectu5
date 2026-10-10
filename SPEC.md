@@ -1,6 +1,6 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
-Version: 0.2.0 (2026-10-09)
+Version: 0.2.1-repair (2026-10-09, audit repair branch)
 Status: Decisions locked by Mike 2026-10-09. Build in a private repo.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 
@@ -40,8 +40,12 @@ Schema name: `selectu5-registry/1`. Each entry has these facts:
 - `permissions`: `commands`, `files`, `network`, `signs`
 - `notes` (not required)
 
-A `read` entry makes no proposal. A `propose` entry builds a proposal
-only. No entry signs. A `showcase` entry is not an install.
+Access describes transaction behavior only: a `read` entry makes no
+proposal, a `propose` entry builds proposals only. Transaction signing
+lives only in the core skill and in Clavi5's phone ceremony, exactly as
+their cards state; Selectu5 itself never signs. A `showcase` entry is
+not an install. Installation side effects (folder writes, backups,
+network fetches) are separate from access and are listed on each card.
 
 ## 5. Commands (skill client)
 
@@ -95,7 +99,7 @@ Mike reads each new entry before it goes in the registry. The review checks:
 ## 10. Phases
 
 - **v0.1 (done):** Skill file, this spec, local registry, client script, tests. Offline. Install is a dry run.
-- **v0.2 (this build):** Client reads the registry from this repo on GitHub, with the local file as fallback. Real install per Section 7: pinned ref only, manifest check before any file is placed, a set version kept as a backup folder on update. The core entry is notice-only. Repo goes public on Mike's word.
+- **v0.2 (audited, installer disabled pending repair):** Client reads the registry from this repo on GitHub, with the local file as fallback. Real install per Section 7: pinned ref only, manifest check before any file is placed, a set version kept as a backup folder on update. The core entry is notice-only. Repo goes public on Mike's word.
 - **v0.3:** Update check on a set interval (opt-in). Chat menu buttons from this skill.
 - **Later:** Builder submissions. A builder sends an entry draft. Mike reviews. No auto-list.
 
@@ -104,3 +108,11 @@ Mike reads each new entry before it goes in the registry. The review checks:
 1. Showcase rule for Clavi5 and Visu5: showcase in v0.1 as built. Mike to confirm or change.
 2. Update interval for v0.3: on-run only, or a daily check.
 3. The full collision check on the exact name "Selectu5" is a separate work item.
+
+- **Repair (in progress on `fix/selectu5-install-boundaries`):** strict
+  catalog validation, plan digests, archive and manifest rules,
+  recoverable locked updates, truthful version reports. Real
+  installation stays disabled until the audit acceptance run passes.
+  The bundled registry is a dated snapshot; when the remote catalog
+  cannot be read, the client prints the snapshot date and a stale
+  warning instead of pretending freshness.

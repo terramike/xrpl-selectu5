@@ -23,8 +23,7 @@ PERM = {"commands": ["none"], "files": ["none"], "network": "none", "signs": "Ne
 def entry(eid, version, kind="skill", ref=None, archive=None):
     e = {"id": eid, "name": eid, "kind": kind, "version": version, "core_version": None,
          "access": "read", "author": "test", "purpose": "test entry",
-         "repo": "https://example.invalid/repo", "install": "test", "permissions": PERM, "ref": ref}
-    if archive: e["archive"] = archive
+         "repo": "https://github.com/terramike/xrpl-demo", "install": "test", "permissions": PERM, "ref": ref}
     return e
 
 class TestSelectu5(unittest.TestCase):
@@ -59,36 +58,51 @@ class TestSelectu5(unittest.TestCase):
         r = run("install", "xrpl-community-shows", "--yes", "9.9.9"); self.assertEqual(r.returncode, 1)
 
     def test_install_from_local_zip(self):
+        self.skipTest("real install disabled during audit repair; fixture kept for re-enable criteria")
         with tempfile.TemporaryDirectory() as d:
             zp = os.path.join(d, "a.zip")
             make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n# demo\n"})
-            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="abc", archive="file://" + zp)])
+            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40, archive="file://" + zp)])
             skills = os.path.join(d, "skills"); os.makedirs(skills)
             r = run("install", "xrpl-demo", "--yes", "1.0.0",
-                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
+                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills, "SELECTU5_TEST_MODE": "1", "SELECTU5_TEST_ARCHIVE": "file://" + zp})
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertTrue(os.path.isfile(os.path.join(skills, "xrpl-demo", "SKILL.md")))
             self.assertIn("installed: xrpl-demo 1.0.0", r.stdout)
 
     def test_install_manifest_mismatch_refused(self):
+        self.skipTest("real install disabled during audit repair; fixture kept for re-enable criteria")
         with tempfile.TemporaryDirectory() as d:
             zp = os.path.join(d, "a.zip")
             make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 2.0.0\n---\n"})
-            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="abc", archive="file://" + zp)])
+            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40, archive="file://" + zp)])
             skills = os.path.join(d, "skills"); os.makedirs(skills)
             r = run("install", "xrpl-demo", "--yes", "1.0.0",
-                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
+                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills, "SELECTU5_TEST_MODE": "1", "SELECTU5_TEST_ARCHIVE": "file://" + zp})
             self.assertEqual(r.returncode, 1)
             self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-demo")))
 
+    def test_install_disabled_during_repair(self):
+        with tempfile.TemporaryDirectory() as d:
+            zp = os.path.join(d, "a.zip")
+            make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n"})
+            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40, archive="file://" + zp)])
+            skills = os.path.join(d, "skills"); os.makedirs(skills)
+            r = run("install", "xrpl-demo", "--yes", "1.0.0",
+                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills, "SELECTU5_TEST_MODE": "1", "SELECTU5_TEST_ARCHIVE": "file://" + zp})
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("disabled during the Selectu5 audit repair", r.stderr)
+            self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-demo")))
+
     def test_install_secret_named_file_refused(self):
+        self.skipTest("real install disabled during audit repair; fixture kept for re-enable criteria")
         with tempfile.TemporaryDirectory() as d:
             zp = os.path.join(d, "a.zip")
             make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 1.0.0\n---\n", "seed.txt": "x"})
-            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="abc", archive="file://" + zp)])
+            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40, archive="file://" + zp)])
             skills = os.path.join(d, "skills"); os.makedirs(skills)
             r = run("install", "xrpl-demo", "--yes", "1.0.0",
-                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
+                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills, "SELECTU5_TEST_MODE": "1", "SELECTU5_TEST_ARCHIVE": "file://" + zp})
             self.assertEqual(r.returncode, 1)
             self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-demo")))
 
@@ -115,3 +129,270 @@ class TestSelectu5(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestAuditRegression(unittest.TestCase):
+    def reg_file(self, tmp, entries):
+        p = os.path.join(tmp, "registry.json")
+        json.dump({"schema": "selectu5-registry/1", "updated_at": "2026-10-09", "entries": entries}, open(p, "w"))
+        return p
+
+    def test_A01_unsafe_ids_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            for bad in ("../outside", "/abs/path", "xrpl-demo\\x", "xrpl.Demo", "xrpl-"):
+                reg = self.reg_file(d, [entry(bad, "1.0.0", ref="a" * 40)])
+                r = run("list", env={"SELECTU5_REGISTRY": reg})
+                self.assertEqual(r.returncode, 1, bad)
+                self.assertNotIn("Traceback", r.stderr)
+
+    def test_A02_reserved_core_id_cannot_be_skill(self):
+        with tempfile.TemporaryDirectory() as d:
+            reg = self.reg_file(d, [entry("xrpl-muse-skill", "1.0.0", kind="skill", ref="a" * 40)])
+            r = run("list", env={"SELECTU5_REGISTRY": reg})
+            self.assertEqual(r.returncode, 1); self.assertIn("reserved", r.stderr)
+
+    def test_A05_duplicate_and_unknown_kind_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            reg = self.reg_file(d, [entry("xrpl-demo", "1.0.0"), entry("xrpl-demo", "1.0.0")])
+            r = run("list", env={"SELECTU5_REGISTRY": reg}); self.assertEqual(r.returncode, 1)
+            e2 = entry("xrpl-demo", "1.0.0"); e2["kind"] = "widget"
+            reg = self.reg_file(d, [e2])
+            r = run("list", env={"SELECTU5_REGISTRY": reg}); self.assertEqual(r.returncode, 1)
+            p = os.path.join(d, "empty.json"); json.dump({"schema": "selectu5-registry/1"}, open(p, "w"))
+            r = run("list", env={"SELECTU5_REGISTRY": p}); self.assertEqual(r.returncode, 1)
+            self.assertNotIn("Traceback", r.stderr); self.assertNotIn("KeyError", r.stderr)
+
+    def test_A20_backup_and_symlink_not_in_inventory(self):
+        with tempfile.TemporaryDirectory() as d:
+            bak = os.path.join(d, "xrpl-demo.bak-1.0.0"); os.makedirs(bak)
+            with open(os.path.join(bak, "SKILL.md"), "w") as fh: fh.write("---\nname: xrpl-demo\nversion: 9.9.9\n---\n")
+            outside = os.path.join(d, "outside.md")
+            with open(outside, "w") as fh: fh.write("---\nname: xrpl-demo\nversion: CANARY\n---\n")
+            link_dir = os.path.join(d, "xrpl-demo"); os.makedirs(link_dir)
+            os.symlink(outside, os.path.join(link_dir, "SKILL.md"))
+            r = run("installed", env={"SELECTU5_SKILLS_DIR": d})
+            self.assertEqual(r.returncode, 0)
+            self.assertNotIn("9.9.9", r.stdout); self.assertNotIn("CANARY", r.stdout)
+
+    def test_A21_version_states(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name, ver in (("xrpl-view-export", "0.0.9"), ("xrpl-community-shows", "9.0.0"), ("xrpl-selectu5", "unknown")):
+                p = os.path.join(d, name); os.makedirs(p)
+                with open(os.path.join(p, "SKILL.md"), "w") as fh: fh.write(f"---\nname: {name}\nversion: {ver}\n---\n")
+            r = run("check-updates", env={"SELECTU5_SKILLS_DIR": d})
+            self.assertEqual(r.returncode, 0)
+            self.assertIn("0.0.9 -> 0.1.0", r.stdout)
+            self.assertIn("newer than the catalog", r.stdout)
+            self.assertIn("not claimed current", r.stdout)
+
+    def test_A23_installed_without_registry(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = run("installed", env={"SELECTU5_REGISTRY": os.path.join(d, "missing.json"), "SELECTU5_SKILLS_DIR": d})
+            self.assertEqual(r.returncode, 0)
+
+    def test_A25_catalog_text_escaped(self):
+        with tempfile.TemporaryDirectory() as d:
+            e = entry("xrpl-demo", "1.0.0", ref="a" * 40)
+            e["purpose"] = "bad \x1b[31m text"
+            reg = self.reg_file(d, [e])
+            r = run("list", env={"SELECTU5_REGISTRY": reg})
+            self.assertEqual(r.returncode, 1)  # control chars rejected at validation
+
+    def test_destination_validation(self):
+        sys.path.insert(0, os.path.join(SKILL, "scripts"))
+        import selectu5
+        with tempfile.TemporaryDirectory() as d:
+            target = selectu5.validate_destination(d, "xrpl-demo")
+            self.assertEqual(os.path.dirname(target), os.path.realpath(d))
+            os.makedirs(os.path.join(d, "Xrpl-Demo"))
+            with self.assertRaises(Exception):
+                selectu5.validate_destination(d, "xrpl-demo")
+
+class TestPlanIdentity(unittest.TestCase):
+    def sysmod(self):
+        sys.path.insert(0, os.path.join(SKILL, "scripts"))
+        import selectu5
+        return selectu5
+
+    def test_A06_plan_digest_binds_fields(self):
+        m = self.sysmod()
+        e = entry("xrpl-demo", "1.0.0", ref="a" * 40)
+        _, d1 = m.build_plan(e, "/tmp/skills/xrpl-demo")
+        e2 = json.loads(json.dumps(e)); e2["permissions"] = dict(e["permissions"], network="https://evil.example")
+        _, d2 = m.build_plan(e2, "/tmp/skills/xrpl-demo")
+        self.assertNotEqual(d1, d2)
+
+    def test_A07_floating_ref_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "registry.json")
+            json.dump({"schema": "selectu5-registry/1", "entries": [entry("xrpl-demo", "1.0.0", ref="main")]}, open(p, "w"))
+            r = run("list", env={"SELECTU5_REGISTRY": p})
+            self.assertEqual(r.returncode, 1); self.assertIn("40-char", r.stderr)
+
+    def test_A09_artifact_digest_verify(self):
+        m = self.sysmod()
+        import hashlib
+        good = hashlib.sha256(b"pkg").hexdigest()
+        self.assertEqual(m.verify_artifact(b"pkg", good), good)
+        with self.assertRaises(Exception):
+            m.verify_artifact(b"pkg", "0" * 64)
+        with self.assertRaises(Exception):
+            m.verify_artifact(b"pkg", None)
+
+    def test_plan_shown_in_dry_run(self):
+        r = run("install", "xrpl-community-shows")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("plan digest (sha256):", r.stdout)
+        self.assertIn("does not prove a human approved it", r.stdout)
+
+    def test_plan_mismatch_refused(self):
+        r = run("install", "xrpl-community-shows", "--plan", "0" * 64)
+        self.assertEqual(r.returncode, 1)
+
+class TestArchiveAndManifest(unittest.TestCase):
+    def mod(self):
+        sys.path.insert(0, os.path.join(SKILL, "scripts"))
+        import selectu5
+        return selectu5
+
+    def zio(self, files):
+        import zipfile as zf_mod
+        buf = io.BytesIO()
+        with zf_mod.ZipFile(buf, "w") as z:
+            for rel, body in files.items():
+                z.writestr(rel, body)
+        buf.seek(0)
+        return zf_mod.ZipFile(buf)
+
+    def test_A12_two_roots_and_traversal_rejected(self):
+        m = self.mod()
+        with self.assertRaises(Exception):
+            m.validate_archive(self.zio({"a/SKILL.md": "x", "b/SKILL.md": "y"}), "a")
+        with self.assertRaises(Exception):
+            m.validate_archive(self.zio({"root/../evil": "x", "root/SKILL.md": "y"}), "root")
+        with self.assertRaises(Exception):
+            m.validate_archive(self.zio({"root\\evil": "x", "root/SKILL.md": "y"}), "root")
+        dup = io.BytesIO()
+        import zipfile as zf_mod
+        with zf_mod.ZipFile(dup, "w") as z:
+            z.writestr("root/SKILL.md", "x"); z.writestr("root/skill.md", "y")
+        dup.seek(0)
+        with self.assertRaises(Exception):
+            m.validate_archive(zf_mod.ZipFile(dup), "root")
+
+    def test_A10_A11_limits(self):
+        m = self.mod()
+        old = dict(m.LIMITS); m.LIMITS["expanded_file"] = 10; m.LIMITS["expanded_total"] = 15
+        try:
+            with self.assertRaises(Exception):
+                m.validate_archive(self.zio({"root/SKILL.md": "x" * 40}), "root")
+        finally:
+            m.LIMITS.update(old)
+
+    def test_A13_strict_manifest(self):
+        m = self.mod()
+        ok = m.parse_manifest_strict("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
+        self.assertEqual(ok["access"], "read")
+        with self.assertRaises(Exception):
+            m.parse_manifest_strict("---\nname: xrpl-demo\nversion: 1.0.0\n---\n")
+        with self.assertRaises(Exception):
+            m.parse_manifest_strict("---\nname: a\nname: b\nversion: 1.0.0\naccess: read\n---\n")
+
+    def test_A14_core_compat(self):
+        m = self.mod()
+        self.assertTrue(m.check_core_compat(">=1.2.3", "1.2.3"))
+        with self.assertRaises(Exception):
+            m.check_core_compat(">=999.0.0", "0.14.1")
+        with self.assertRaises(Exception):
+            m.check_core_compat(">=1.0.0", "unknown")
+        with self.assertRaises(Exception):
+            m.check_core_compat("~1.0", "1.0.0")
+
+class TestRecoverableInstall(unittest.TestCase):
+    def mod(self):
+        sys.path.insert(0, os.path.join(SKILL, "scripts"))
+        import selectu5
+        return selectu5
+
+    def pkg(self, files, top="xrpl-demo-abc"):
+        buf = io.BytesIO()
+        import zipfile as zf_mod
+        with zf_mod.ZipFile(buf, "w") as z:
+            for rel, body in files.items():
+                z.writestr(f"{top}/{rel}", body)
+        return buf.getvalue()
+
+    def demo_entry(self, data):
+        import hashlib
+        e = entry("xrpl-demo", "1.0.0", ref="a" * 40)
+        e["artifact_sha256"] = hashlib.sha256(data).hexdigest()
+        e["package_root"] = "xrpl-demo-abc"
+        return e
+
+    MANIFEST = "---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n# demo\n"
+
+    def test_A15_A16_offline_install_and_credential_refusal(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            data = self.pkg({"SKILL.md": self.MANIFEST, "data/shows-fixture.json": "{}"})
+            out = m.install_package(self.demo_entry(data), data, d, "0.14.1")
+            self.assertTrue(os.path.isfile(os.path.join(out["installed"], "SKILL.md")))
+            bad = self.pkg({"SKILL.md": self.MANIFEST, "seed.txt": "x"})
+            e = self.demo_entry(bad)
+            with self.assertRaises(Exception):
+                m.install_package(e, bad, d, "0.14.1")
+
+    def test_A17_failed_final_move_restores_active(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            data = self.pkg({"SKILL.md": self.MANIFEST})
+            m.install_package(self.demo_entry(data), data, d, "0.14.1")
+            marker = os.path.join(d, "xrpl-demo", "SKILL.md")
+            before = open(marker).read()
+            real_move = m.shutil.move
+            calls = {"n": 0}
+            def flaky(src, dst):
+                calls["n"] += 1
+                if calls["n"] == 2:
+                    raise OSError("injected failure")
+                return real_move(src, dst)
+            m.shutil.move = flaky
+            try:
+                with self.assertRaises(Exception):
+                    m.install_package(self.demo_entry(data), data, d, "0.14.1")
+            finally:
+                m.shutil.move = real_move
+            self.assertTrue(os.path.isfile(marker))
+            self.assertEqual(open(marker).read(), before)
+
+    def test_A18_recovery_record_rolls_back(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            target = os.path.join(d, "xrpl-demo"); backup = os.path.join(d, "xrpl-demo.bak-tx1")
+            os.makedirs(backup)
+            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("old")
+            rec = os.path.join(d, m.RECOVERY_DIRNAME); os.makedirs(rec)
+            json.dump({"tx": "tx1", "id": "xrpl-demo", "stage": "active-moved", "target": target, "backup": backup},
+                      open(os.path.join(rec, "tx1.json"), "w"))
+            actions = m.recover_transactions(d)
+            self.assertTrue(actions)
+            self.assertTrue(os.path.isfile(os.path.join(target, "SKILL.md")))
+
+    def test_A19_lock_conflict(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            release = m.install_lock(d)
+            try:
+                with self.assertRaises(Exception):
+                    m.install_lock(d)
+            finally:
+                release()
+
+    def test_A29_self_update_engine_path(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            e = entry("xrpl-selectu5", "0.2.0", ref="b" * 40)
+            import hashlib
+            data = self.pkg({"SKILL.md": "---\nname: xrpl-selectu5\nversion: 0.2.0\naccess: read\n---\n"}, top="xrpl-selectu5-abc")
+            e["artifact_sha256"] = hashlib.sha256(data).hexdigest(); e["package_root"] = "xrpl-selectu5-abc"
+            out = m.install_package(e, data, d, "0.14.1")
+            self.assertTrue(os.path.isfile(os.path.join(out["installed"], ".selectu5-meta.json")))

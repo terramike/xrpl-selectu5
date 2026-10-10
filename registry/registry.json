@@ -28,7 +28,9 @@
         "signs": "Only xrpl-sign, only with explicit human approval of an exact proposal hash."
       },
       "notes": "Core updates are notices in Selectu5, never silent installs. A core release keeps HOL Guard parity before it ships.",
-      "ref": "v0.14.1"
+      "ref": "v0.14.1",
+      "artifact_sha256": null,
+      "package_root": null
     },
     {
       "id": "xrpl-view-export",
@@ -57,8 +59,10 @@
         "network": "None. The export file never leaves the machine by itself.",
         "signs": "Never."
       },
-      "notes": "Repo link to confirm at publish time; no pinned ref yet, so Selectu5 lists it but cannot install it.",
-      "ref": null
+      "notes": "Repo link to confirm at publish time; no pinned ref yet, so Selectu5 lists it but cannot install it. Manifest also needs an access field before it can pass strict install checks.",
+      "ref": null,
+      "artifact_sha256": null,
+      "package_root": null
     },
     {
       "id": "xrpl-community-shows",
@@ -81,8 +85,10 @@
         "network": "https://shows-api.terramike.com (reads and show submissions).",
         "signs": "Never."
       },
-      "notes": "Private repo while in audit; listing goes public on Mike's word.",
-      "ref": "b2c8a7ebda8dd3be564241a309f4d337977fa51f"
+      "notes": "Companion repair on branch fix/selectu5-fixture-rename (v0.2.2, access frontmatter, data/shows-fixture.json). This 0.2.1 entry stays list-only until that release is reviewed and merged.",
+      "ref": "b2c8a7ebda8dd3be564241a309f4d337977fa51f",
+      "artifact_sha256": null,
+      "package_root": null
     },
     {
       "id": "clavi5",
@@ -106,7 +112,9 @@
         "signs": "Only on your phone, after Face ID confirms the exact transaction. Mainnet stays off by default."
       },
       "notes": "Showcase entry: Selectu5 shows the card and the enroll link. It cannot enroll you.",
-      "ref": null
+      "ref": null,
+      "artifact_sha256": null,
+      "package_root": null
     },
     {
       "id": "visu5",
@@ -130,7 +138,9 @@
         "signs": "Never. The dash shows and asks; the ceremony stays in chat."
       },
       "notes": "Showcase entry: Selectu5 shows the card and the link. Board stays private by default.",
-      "ref": null
+      "ref": null,
+      "artifact_sha256": null,
+      "package_root": null
     },
     {
       "id": "xrpl-selectu5",
@@ -155,7 +165,9 @@
         "signs": "Never."
       },
       "notes": "Pinned ref is the v0.2.0 release commit; refreshed with each release.",
-      "ref": "d97c6657932177e06e96a0f021d3d1c52a90b639"
+      "ref": "d97c6657932177e06e96a0f021d3d1c52a90b639",
+      "artifact_sha256": null,
+      "package_root": null
     }
   ]
 }
