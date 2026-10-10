@@ -1318,7 +1318,7 @@ def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None, skills
         return 1
     enabled = INSTALL_ENABLED if install_enabled is None else install_enabled
     if not enabled:
-        print("\nReal installation is disabled during the Selectu5 audit repair. "
+        print("\nReal installation is disabled in this build. "
               "The card above stays available as a dry run. Nothing was installed.", file=sys.stderr)
         return 2
     trust = catalog_trust(source) if trusted_catalog is None else trusted_catalog
