@@ -1,5 +1,5 @@
 {
-  "schema": "promptu5-registry/1",
+  "schema": "selectu5-registry/1",
   "updated_at": "2026-10-09",
   "curator": "terramike",
   "entries": [
@@ -20,7 +20,7 @@
         "network": "XRPL nodes and named data sources (xrpl.to, DefiLlama).",
         "signs": "Only xrpl-sign, only with explicit human approval of an exact proposal hash."
       },
-      "notes": "Core updates are notices in Promptu5, never silent installs. A core release keeps HOL Guard parity before it ships."
+      "notes": "Core updates are notices in Selectu5, never silent installs. A core release keeps HOL Guard parity before it ships."
     },
     {
       "id": "xrpl-view-export",
@@ -77,7 +77,7 @@
         "network": "drop.terramike.com approval service.",
         "signs": "Only on your phone, after Face ID confirms the exact transaction. Mainnet stays off by default."
       },
-      "notes": "Showcase entry: Promptu5 shows the card and the enroll link. It cannot enroll you."
+      "notes": "Showcase entry: Selectu5 shows the card and the enroll link. It cannot enroll you."
     },
     {
       "id": "visu5",
@@ -96,18 +96,18 @@
         "network": "Static pages. XRPL View makes zero network calls with file content.",
         "signs": "Never. The dash shows and asks; the ceremony stays in chat."
       },
-      "notes": "Showcase entry: Promptu5 shows the card and the link. Board stays private by default."
+      "notes": "Showcase entry: Selectu5 shows the card and the link. Board stays private by default."
     },
     {
-      "id": "xrpl-promptu5",
-      "name": "Promptu5 (this store)",
+      "id": "xrpl-selectu5",
+      "name": "Selectu5 (this store)",
       "kind": "skill",
       "version": "0.1.0",
       "core_version": ">=0.14.1",
       "access": "read",
       "author": "terramike",
       "purpose": "Browse the curated add-on registry, see purpose and permissions before any install, and check for updates to add-ons and the core skill.",
-      "repo": "https://github.com/terramike/xrpl-promptu5",
+      "repo": "https://github.com/terramike/xrpl-selectu5",
       "install": "Installs into the Muse skills folder from its repo (private while building).",
       "permissions": {
         "commands": ["No core commands in v0.1."],

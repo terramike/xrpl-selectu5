@@ -1,20 +1,20 @@
 ---
-name: xrpl-promptu5
+name: xrpl-selectu5
 version: 0.1.0
 core_version: ">=0.14.1"
 access: read
 author: terramike
-description: "Promptu5 — the app store for the XRPL Muse skill family: browse curated add-on skills, see each skill's purpose and permissions in chat, install on your word, and check for updates to add-ons and the core skill. Companion skill — never edits the core xrpl-muse skill, never proposes or signs."
+description: "Selectu5 — the app store for the XRPL Muse skill family: browse curated add-on skills, see each skill's purpose and permissions in chat, install on your word, and check for updates to add-ons and the core skill. Companion skill — never edits the core xrpl-muse skill, never proposes or signs."
 ---
 
-# xrpl-promptu5 (Promptu5)
+# xrpl-selectu5 (Selectu5)
 
 Companion skill to xrpl-muse-skill. Spec: `SPEC.md` in this directory.
-Brand: **Promptu5** (Latin *promptus* — kept ready at hand).
+Brand: **Selectu5** (Latin *selectus* — chosen: nothing enters the registry unreviewed).
 
 ## What it does
 
-Runs `scripts/promptu5.py`, which reads a curated registry and reports
+Runs `scripts/selectu5.py`, which reads a curated registry and reports
 what is installed on this machine.
 
 - `list` — every registry entry: purpose, version, access class.
@@ -29,8 +29,8 @@ what is installed on this machine.
 - `version` — print the skill version.
 
 The registry is `registry/registry.json` in this repo. Set
-`PROMPTU5_REGISTRY` to a file path or an https URL to use another copy.
-Set `PROMPTU5_SKILLS_DIR` to scan a different skills folder.
+`SELECTU5_REGISTRY` to a file path or an https URL to use another copy.
+Set `SELECTU5_SKILLS_DIR` to scan a different skills folder.
 
 ## Rules (never break)
 
@@ -42,15 +42,15 @@ Set `PROMPTU5_SKILLS_DIR` to scan a different skills folder.
   update runs without the user's word for that exact item and version.
 - A showcase entry (Clavi5, Visu5) is not an install. Show its real
   next step: enroll or open the page.
-- Every output prints the version line: `xrpl-promptu5 0.1.0`.
+- Every output prints the version line: `xrpl-selectu5 0.1.0`.
 
 ## Use
 
 ```bash
-python3 scripts/promptu5.py list
-python3 scripts/promptu5.py show xrpl-community-shows
-python3 scripts/promptu5.py installed
-python3 scripts/promptu5.py check-updates
+python3 scripts/selectu5.py list
+python3 scripts/selectu5.py show xrpl-community-shows
+python3 scripts/selectu5.py installed
+python3 scripts/selectu5.py check-updates
 ```
 
 Then tell the user: what is listed or installed, any update with its
@@ -60,6 +60,6 @@ say what the real next step is instead of offering an install.
 ## Updates
 
 Skills do not auto-update. This skill's version is in this file's
-frontmatter and is printed by every command. Promptu5 itself is listed
+frontmatter and is printed by every command. Selectu5 itself is listed
 in its own registry, so `check-updates` covers it too. Never install an
 update without the user's approval.

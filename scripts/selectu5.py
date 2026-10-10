@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""xrpl-promptu5 0.1.0 — Promptu5, the XRPL Muse skill app store.
+"""xrpl-selectu5 0.1.0 — Selectu5, the XRPL Muse skill app store.
 
 Companion skill. Read-only: it reads a curated registry and the version
 frontmatter of local skills. It never proposes, never signs, never
@@ -22,16 +22,16 @@ FIELD = re.compile(r"^(name|version):\s*[\"']?([^\"'\n]+)[\"']?\s*$", re.M)
 
 
 def load_registry():
-    src = os.environ.get("PROMPTU5_REGISTRY", DEFAULT_REGISTRY)
+    src = os.environ.get("SELECTU5_REGISTRY", DEFAULT_REGISTRY)
     try:
         if src.startswith("https://"):
-            req = urllib.request.Request(src, headers={"User-Agent": "xrpl-promptu5/0.1.0"})
+            req = urllib.request.Request(src, headers={"User-Agent": "xrpl-selectu5/0.1.0"})
             with urllib.request.urlopen(req, timeout=20) as resp:
                 return json.loads(resp.read().decode("utf-8")), src
         with open(src, encoding="utf-8") as fh:
             return json.load(fh), src
     except Exception as exc:
-        print(f"xrpl-promptu5 {VERSION}: cannot read registry ({src}): {exc}", file=sys.stderr)
+        print(f"xrpl-selectu5 {VERSION}: cannot read registry ({src}): {exc}", file=sys.stderr)
         return None, src
 
 
@@ -62,7 +62,7 @@ def local_skills(skills_dir):
 
 
 def header():
-    print(f"xrpl-promptu5 {VERSION} — Promptu5, the XRPL Muse skill store")
+    print(f"xrpl-selectu5 {VERSION} — Selectu5, the XRPL Muse skill store")
 
 
 def cmd_list(reg, local):
@@ -70,7 +70,8 @@ def cmd_list(reg, local):
     for e in reg["entries"]:
         state = ""
         if e["id"] in local:
-            state = f" — installed {local[e['id']]['version']}"
+            v = local[e["id"]]["version"]
+            state = f" — installed {v}" if v != "unknown" else " — installed (version not stated)"
             if local[e["id"]]["version"] != e["version"]:
                 state += f" (registry {e['version']})"
         elif e["kind"] == "showcase":
@@ -84,7 +85,7 @@ def cmd_list(reg, local):
 def cmd_show(reg, local, entry_id):
     entry = next((e for e in reg["entries"] if e["id"] == entry_id), None)
     if not entry:
-        print(f"xrpl-promptu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
+        print(f"xrpl-selectu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
         return 1
     header()
     state = (f"installed {local[entry_id]['version']}" if entry_id in local
@@ -105,7 +106,7 @@ def cmd_show(reg, local, entry_id):
     if entry.get("notes"):
         print(f"\nnotes: {entry['notes']}")
     if entry["kind"] == "showcase":
-        print("\nThis is a showcase card. Promptu5 cannot install or enroll it; use the link above.")
+        print("\nThis is a showcase card. Selectu5 cannot install or enroll it; use the link above.")
     return 0
 
 
@@ -156,7 +157,7 @@ def cmd_check(reg, local):
 def cmd_install(reg, entry_id):
     entry = next((e for e in reg["entries"] if e["id"] == entry_id), None)
     if not entry:
-        print(f"xrpl-promptu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
+        print(f"xrpl-selectu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
         return 1
     header()
     if entry["kind"] == "showcase":
@@ -174,7 +175,7 @@ def cmd_install(reg, entry_id):
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="promptu5")
+    ap = argparse.ArgumentParser(prog="selectu5")
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("list")
     p_show = sub.add_parser("show"); p_show.add_argument("id")
@@ -184,12 +185,12 @@ def main():
     sub.add_parser("version")
     args = ap.parse_args()
     if args.cmd in (None, "version"):
-        print(f"xrpl-promptu5 {VERSION}")
+        print(f"xrpl-selectu5 {VERSION}")
         return 0
     reg, src = load_registry()
     if reg is None:
         return 1
-    skills_dir = os.environ.get("PROMPTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
+    skills_dir = os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
     local = local_skills(skills_dir)
     if args.cmd == "list":
         return cmd_list(reg, local)

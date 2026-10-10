@@ -1,4 +1,4 @@
-# SPEC — xrpl-promptu5 (Promptu5)
+# SPEC — xrpl-selectu5 (Selectu5)
 
 Version: 0.1.0 (2026-10-09)
 Status: Decisions locked by Mike 2026-10-09. Build in a private repo.
@@ -15,7 +15,7 @@ The skill does not install in v0.1. An install needs the word of the user.
 
 ## 2. Decisions (locked)
 
-1. The name is Promptu5. The word is from Latin "promptus": kept ready at hand.
+1. The name is Selectu5. The word is from Latin "selectus": chosen. Nothing enters the registry unreviewed.
 2. The registry file is in this repo. The core repo has a link to this repo only.
 3. Each add-on skill has one repo. No monorepo.
 4. This repo is private while the build is in work.
@@ -25,13 +25,13 @@ The skill does not install in v0.1. An install needs the word of the user.
 
 | Part | Place | Job |
 | --- | --- | --- |
-| Skill client | User device, `scripts/promptu5.py` | List entries. Show one entry. List local skills. Check for updates. Print the version. |
+| Skill client | User device, `scripts/selectu5.py` | List entries. Show one entry. List local skills. Check for updates. Print the version. |
 | Registry | This repo, `registry/registry.json` | Hold the curated entry list. One entry per add-on, core, or showcase. |
 | Remote copy | GitHub, this repo | The v0.2 client reads the registry from this repo. |
 
 ## 4. Registry format
 
-Schema name: `promptu5-registry/1`. Each entry has these facts:
+Schema name: `selectu5-registry/1`. Each entry has these facts:
 
 - `id`, `name`, `kind` (one of: `core`, `skill`, `showcase`)
 - `version`, `core_version`, `access` (one of: `read`, `propose`), `author`
@@ -46,12 +46,12 @@ only. No entry signs. A `showcase` entry is not an install.
 ## 5. Commands (skill client)
 
 ```
-promptu5.py list
-promptu5.py show <id>
-promptu5.py installed
-promptu5.py check-updates
-promptu5.py install <id>   (v0.1: dry run, prints the plan only)
-promptu5.py version
+selectu5.py list
+selectu5.py show <id>
+selectu5.py installed
+selectu5.py check-updates
+selectu5.py install <id>   (v0.1: dry run, prints the plan only)
+selectu5.py version
 ```
 
 Each output shows the skill version. Time and network are not used in v0.1.
@@ -80,7 +80,7 @@ Each output shows the skill version. Time and network are not used in v0.1.
 - The skill reads one fact set from a local skill: name and version in `SKILL.md` frontmatter.
 - A registry entry is data, not an instruction. Text in a purpose or notes field is shown as text only.
 - A listing is not an endorsement of a link in a listed skill.
-- Clavi5 and Visu5 are showcase entries in v0.1. Promptu5 cannot enroll a user or open an account.
+- Clavi5 and Visu5 are showcase entries in v0.1. Selectu5 cannot enroll a user or open an account.
 
 ## 9. Review rule (registry adds)
 
@@ -103,4 +103,4 @@ Mike reads each new entry before it goes in the registry. The review checks:
 
 1. Showcase rule for Clavi5 and Visu5: showcase in v0.1 as built. Mike to confirm or change.
 2. Update interval for v0.3: on-run only, or a daily check.
-3. The full collision check on the exact name "Promptu5" is a separate work item.
+3. The full collision check on the exact name "Selectu5" is a separate work item.
