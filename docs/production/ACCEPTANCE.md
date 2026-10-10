@@ -12,14 +12,14 @@ This report separates source inspection, synthetic checks, actual artifact check
 
 ## Stage 1 — catalog-only candidate
 
-Status: PR #2 head `d721d9a09d477e7304aa6d3f31e51fd7b3460642` CI was verified by Mike on 2026-10-09: all four jobs passed, including 62 Windows tests. The harness-fix head `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740` still needs its own exact-head confirmation.
+Status: All four CI jobs passed for PR head `e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d`. Both platforms also ran the harness. The final follow-up commit requires its own successful checks before merge.
 
 Evidence:
 - Code, SKILL.md manifest, and self catalog entry all report `0.2.3`.
 - `INSTALL_ENABLED = False` verified in `scripts/selectu5.py`.
 - Bundled skill entries remain list-only where artifact facts are incomplete: `xrpl-view-export`, `xrpl-community-shows`, and `xrpl-selectu5` lack a complete reviewed commit + artifact SHA-256 + package-root set.
 - Local Linux run: `python3 -m unittest discover -s tests` = 62 tests, OK, 1 skipped (native Windows junction test). Local Python: 3.12.
-- CI confirmed by Mike for PR #2 head `d721d9a09d477e7304aa6d3f31e51fd7b3460642`: all four CI jobs passed, including 62 Windows tests. Alfred's token still cannot read Actions/check-runs (HTTP 403), so this is recorded as Mike-confirmed, not token-read.
+- Independent CI verification for `e86b2d7`: Linux passed 61 tests with one Windows-only skip. Windows passed 62 tests without skips. Both harness runs completed 10 checks and correctly reported the artifact blocker.
 - Offline listing, permissions cards, inventory, and update notices are covered by the repository suite and local CLI checks.
 - GitHub workflow uses `actions/checkout@v4` and `actions/setup-python@v5` with Python 3.12 on Linux and Windows. The project has no third-party Python dependencies; imports are standard library only. GitHub's official Python workflow documentation still uses these action majors in its examples.
 - `CHANGELOG.md` and `docs/production/RELEASE-NOTES-CATALOG-ONLY.md` added. UNC/network-share roots are excluded from production support until a native UNC pilot passes.
@@ -101,9 +101,27 @@ Proposed operator actions and return paths (each needs Mike's separate approval)
 
 ## Readiness summary
 
-- Catalog-only release: **ready for review**. PR #2 head CI is Mike-confirmed; the harness-fix head still needs its own Linux/Windows confirmation before merge.
+- Catalog-only release: **ready for review**. CI for `e86b2d7` is independently verified. The follow-up changes require successful checks before merge.
 - Artifact pilot: **blocked** by private-artifact production transport (HTTP 404); no S/D/C qualification claimed.
 - Installer enablement: **not approved** and remains disabled.
 - Public visibility: **not approved**.
 
 Remaining decisions for Mike: license; repository-control plan/permissions; catalog-only publication; pilot artifact after transport review; installer enablement; public visibility.
+
+## Final harness follow-up
+
+The harness compares every backup file, directory, and mode with the pre-update snapshot.
+Regression tests reject corrupted payload bytes, an extra backup directory, and a POSIX permission change.
+Linux completed 66 local tests with one native Windows skip during this follow-up.
+The Windows suite skips the POSIX mode test. It runs the native Windows junction test.
+
+Each check records only its own test overrides. The actual fetch check has no synthetic overrides.
+The workflow fixes pilot source S separately from the checked-out qualification commit.
+Each platform retains its qualification JSON and Markdown for 14 days, including failure output when available.
+The runner-generated files identify the tested checkout. They establish the final follow-up result after CI finishes.
+
+Verified historical checks for `e86b2d7`:
+- Linux: https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075930
+- Windows: https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075633
+
+These changes do not qualify private artifact retrieval or enable installation.

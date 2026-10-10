@@ -31,20 +31,15 @@
       "id": "license-and-controls",
       "severity": "decision_pending",
       "statement": "License selection and repository-control configuration remain Mike/maintainer decisions."
-    },
-    {
-      "id": "ci-harness-fix-head",
-      "severity": "evidence_pending",
-      "statement": "PR #2 head d721 CI is Mike-confirmed; the harness-fix head 104b8ed needs its own Linux/Windows confirmation (workflow now runs qualify.py on both)."
     }
   ],
   "candidate": {
     "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
     "branch": "codex/selectu5-production-qualification",
-    "commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+    "commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
     "install_enabled": false,
     "license_decision": null,
-    "pr2_confirmed_ci_head": "d721d9a09d477e7304aa6d3f31e51fd7b3460642",
+    "pr2_confirmed_ci_head": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
     "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
     "repository_controls": {
       "current": "Private repo; branch protection read returned HTTP 403 (GitHub Pro/public required); Actions runs read returned HTTP 403 (token permission).",
@@ -53,7 +48,7 @@
     },
     "supported_platforms_and_root_types": [
       "Linux local filesystem roots (Python 3.12)",
-      "Windows local filesystem roots pending exact-commit CI",
+      "Windows local filesystem roots (Python 3.12; e86b2d7 CI verified)",
       "UNC roots excluded until native pilot passes"
     ],
     "version": "0.2.3"
@@ -117,12 +112,7 @@
       "sentinels": [],
       "skipped": null,
       "status": "pass",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
+      "test_overrides": []
     },
     {
       "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
@@ -303,52 +293,45 @@
       "sentinels": [],
       "skipped": null,
       "status": "blocked",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
+      "test_overrides": []
     },
     {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "d721d9a09d477e7304aa6d3f31e51fd7b3460642",
-      "ci_url": "https://github.com/terramike/xrpl-selectu5/pull/2",
-      "command": "GitHub Actions tests workflow for PR #2",
-      "evidence_path": "PR #2 checks (verified by Mike 2026-10-09)",
-      "exit_code": 0,
-      "failed": 0,
+      "name": "PR #2 e86b2d7 Linux CI",
       "kind": "live_operation",
-      "name": "PR #2 exact-head CI (Mike-confirmed)",
-      "passed": 62,
-      "platform": "Linux and Windows",
-      "python_version": "3.12",
-      "qualification_code_commit": "d721d9a09d477e7304aa6d3f31e51fd7b3460642",
-      "reason": "Mike verified all four CI jobs passed for PR #2, including 62 Windows tests. This confirms the pre-harness-fix PR head; the harness code is now also wired into both CI jobs for the updated head.",
-      "sentinels": [],
-      "skipped": 0,
       "status": "pass",
-      "test_overrides": []
+      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
+      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
+      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
+      "artifact_source_commit_S": "62648d7119353110957626b2aae8003d6cce64c8",
+      "platform": "Linux",
+      "python_version": "3.12",
+      "command": "Repository suite and scripts/qualify.py",
+      "exit_code": 0,
+      "passed": 61,
+      "failed": 0,
+      "skipped": 1,
+      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075930",
+      "test_overrides": [],
+      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S."
     },
     {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": "https://github.com/terramike/xrpl-selectu5/pull/2",
-      "command": "GitHub Actions tests workflow including scripts/qualify.py",
-      "evidence_path": null,
-      "exit_code": null,
-      "failed": null,
+      "name": "PR #2 e86b2d7 Windows CI",
       "kind": "live_operation",
-      "name": "harness-fix exact-head CI",
-      "passed": null,
-      "platform": "Linux and Windows",
-      "python_version": "3.12",
+      "status": "pass",
+      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
       "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "New PR head must be confirmed in GitHub Actions; current token cannot read Actions/check-runs (HTTP 403).",
-      "sentinels": [],
-      "skipped": null,
-      "status": "not_run",
-      "test_overrides": []
+      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
+      "artifact_source_commit_S": "62648d7119353110957626b2aae8003d6cce64c8",
+      "platform": "Windows",
+      "python_version": "3.12",
+      "command": "Repository suite and scripts/qualify.py",
+      "exit_code": 0,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075633",
+      "test_overrides": [],
+      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S."
     }
   ],
   "created_at_utc": "2026-10-10T06:40:10.398151Z",
@@ -357,7 +340,7 @@
     "Process interruption evidence does not prove power-loss durability.",
     "UNC roots are excluded until a native UNC pilot passes.",
     "Repository controls could not be verified through the current token/plan.",
-    "Exact-commit CI must be confirmed on the PR head."
+    "Final PR head evidence resides in retained CI artifacts; this file preserves explicitly identified historical checks."
   ],
   "repair_baseline": {
     "merge_commit": "22528a2967133c78c59f7455188b8e5f1165fc0c",
@@ -373,5 +356,15 @@
     "public_visibility": "not_approved"
   },
   "schema": "selectu5-production-evidence/1",
-  "status": "qualification_in_progress"
+  "status": "qualification_in_progress",
+  "evidence_scope": "Historical local checks at 104b8ed and independently verified CI at e86b2d7. The final PR head has separate runner-generated qualification artifacts and check results.",
+  "ci_artifact_policy": {
+    "files": [
+      "qualification-evidence.json",
+      "qualification-evidence.md"
+    ],
+    "retention_days": 14,
+    "name": "qualification-<job>-<checked-out-commit>",
+    "candidate_identity": "Runner-generated evidence records the checked-out code commit separately from selected artifact source S."
+  }
 }

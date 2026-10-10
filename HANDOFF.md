@@ -35,14 +35,17 @@ This handoff does not authorize them.
 
 ## Continuity record
 
-Codex must update this section before a pause or the end of a session.
+- Working branch: `codex/selectu5-production-qualification`, PR #2.
+- Historical code commit: `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740`.
+- Verified CI head: `e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d`; all four jobs passed, including both harness runs.
+- Follow-up changes: complete backup snapshots, operation-specific overrides, corruption regressions, and retained CI evidence.
+- Local follow-up result: 66 tests completed, one native Windows test skipped, no failures.
+- Final merge condition: successful Linux and Windows checks for the submitted follow-up commit.
+- Evidence: `docs/production/ACCEPTANCE.md`, `docs/production/evidence.json`, and retained per-platform CI artifacts.
+- Selected artifact S: `7db6c62951b552d15fa13cc09e1f083f073ca92a`; digest D and catalog C remain unqualified.
+- Remaining blockers: private artifact retrieval, actual installation/update qualification, license, repository controls, and release review.
+- Next action after merge: prepare the reviewed artifact-distribution choice while the shipped gate remains disabled.
 
-- Working branch and candidate commit: `codex/selectu5-production-qualification`, created from current `main` at `7db6c62951b552d15fa13cc09e1f083f073ca92a` (final PR head recorded in the PR).
-- Completed stages and evidence paths: Stage 1 catalog-only qualification and Stage 3 synthetic harness complete locally; Stage 2 artifact pilot blocked at production transport; Stage 4 review package drafted in `docs/production/ACCEPTANCE.md` and `docs/production/evidence.json`.
-- Commands and latest results: repository suite locally: 62 tests, OK, 1 skipped on Linux. Mike verified all four CI jobs passed for PR #2 head `d721d9a09d477e7304aa6d3f31e51fd7b3460642`, including 62 Windows tests. Harness fixes were pushed at `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740`: canonical `validate_destination()` plans, separate qualification-code commit vs artifact S, all overrides recorded, no-op no-fetch/no-mutation assertion, update/backup identity assertions, dummy-core binding with per-operation sentinel checks, and `qualify.py` wired into both CI jobs. The harness-fix head still needs exact-head CI confirmation.
-- Artifact source S, digest D, and catalog C: S = `7db6c62951b552d15fa13cc09e1f083f073ca92a`; D/C not qualified because `selectu5.fetch_distribution` returned HTTP 404 for the private repo archive.
-- Current blockers: Exact-head CI confirmation for harness-fix commit `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740`; license selection; repository-control plan/token limits; private-artifact transport design; production review.
-- Next independent action: Confirm Linux/Windows checks (now including `qualify.py`) on PR #2's harness-fix head; if transport remains blocked, prepare a separate reviewed fixed-asset/authenticated transport design.
-- Next decision needed from Mike: Review the concrete package in `docs/production/ACCEPTANCE.md`; license and release decisions remain separate.
-
-Keep this record concise. Preserve actual identities, unresolved failures, and the next action.
+Mike authorized these follow-up changes and merging PR #2 after successful checks.
+Publication, visibility, and installer enablement remain separate decisions.
+Update this record before another pause. Preserve the tested identities and unresolved blockers.

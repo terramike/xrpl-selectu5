@@ -10,7 +10,7 @@ Record `blocked` or `not_run` when a check cannot finish.
 - [x] Confirm matching code, manifest, and self catalog versions. Evidence: harness source inspection pass.
 - [x] Confirm that shipped code keeps the installer gate disabled. Evidence: `INSTALL_ENABLED = False`.
 - [x] Confirm all unqualified skill entries remain list-only. Evidence: harness list-only pass.
-- [x] Attach successful Linux and Windows CI for the candidate. Evidence: Mike verified all four CI jobs passed for PR #2 head `d721d9a09d477e7304aa6d3f31e51fd7b3460642`, including 62 Windows tests (2026-10-09). Harness-fix head `104b8ed61ec7ae52e2938eaf4d1c56291ac2d740` still needs its own exact-head confirmation; workflow now runs `scripts/qualify.py` on Linux and Windows.
+- [x] Attach verified historical Linux and Windows CI for `e86b2d7`. Evidence: ACCEPTANCE and evidence.json. Require successful checks for the final follow-up commit before merge.
 - [x] Check offline listing, inventory, permissions cards, and update notices. Evidence: repository suite + local CLI checks.
 - [x] Check unavailable catalog fallback and invalid catalog refusal. Evidence: repository suite.
 - [x] Check that installation refusal fetches no artifact. Evidence: repository suite disabled-gate tests.
@@ -86,3 +86,15 @@ The test override does not establish host consent or production authorization.
 
 Publishing a catalog-only release does not authorize installer enablement.
 A successful merge does not authorize package execution or deployment.
+
+## Follow-up merge checks
+
+- [x] Compare every backup file, directory, and mode with the pre-update snapshot.
+- [x] Add regressions for payload corruption, an extra directory, and POSIX permission changes.
+- [x] Record synthetic overrides only on the operations that use them.
+- [x] Separate selected pilot S from the qualification checkout in CI.
+- [x] Retain runner-generated qualification JSON and Markdown for 14 days.
+- [ ] Confirm successful Linux and Windows checks for the final follow-up commit before merge.
+
+The retained runner evidence identifies the checkout that produced each result.
+Historical evidence in this repository does not claim results for a future commit.

@@ -16,6 +16,7 @@ import json
 import os
 import re
 import subprocess
+import stat
 import sys
 import tempfile
 import zipfile
@@ -32,6 +33,8 @@ OVERRIDES = [
     "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
     "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
     "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR",
+    "SELECTU5_CORE_DIR bound to the disposable dummy core",
+    "builtins.open instrumented for dummy sentinel paths during each operation",
 ]
 
 
@@ -71,12 +74,22 @@ def capture(fn):
 
 
 def snapshot_tree(root):
+    """Record all directory entries, file bytes, and modes without following links."""
     snap = {}
-    for dp, dns, fns in os.walk(root):
+    for dp, dns, fns in os.walk(root, followlinks=False):
         dns.sort()
-        for fn in sorted(fns):
-            p = os.path.join(dp, fn)
-            snap[os.path.relpath(p, root)] = file_sha(p)
+        rel = os.path.relpath(dp, root)
+        snap[rel] = {"type": "directory", "mode": stat.S_IMODE(os.lstat(dp).st_mode)}
+        for name in sorted(dns + fns):
+            path = os.path.join(dp, name)
+            key = os.path.relpath(path, root)
+            mode = stat.S_IMODE(os.lstat(path).st_mode)
+            if os.path.islink(path):
+                snap[key] = {"type": "symlink", "target": os.readlink(path), "mode": mode}
+            elif os.path.isdir(path):
+                snap[key] = {"type": "directory", "mode": mode}
+            else:
+                snap[key] = {"type": "file", "sha256": file_sha(path), "mode": mode}
     return snap
 
 
@@ -139,10 +152,10 @@ def main():
 
     checks = []
 
-    def add(name, kind, status, evidence, **extra):
+    def add(name, kind, status, evidence, overrides=(), **extra):
         item = {"name": name, "kind": kind, "status": status, "evidence": evidence,
                 "qualification_code_commit": qual_commit, "artifact_source_commit_S": args.source_commit,
-                "test_overrides": OVERRIDES if kind in ("synthetic", "actual_artifact") else []}
+                "test_overrides": list(overrides)}
         item.update(extra)
         checks.append(item)
 
@@ -202,7 +215,8 @@ def main():
 
     base_sentinels = sentinel_state()
     add("dummy core binding", "synthetic", "pass" if bound_core_version == CORE_VERSION else "fail",
-        f"SELECTU5_CORE_DIR={dummy_core}; supplied core_version_text={bound_core_version} read from dummy manifest by the harness")
+        f"SELECTU5_CORE_DIR={dummy_core}; supplied core_version_text={bound_core_version} read from dummy manifest by the harness",
+        overrides=["SELECTU5_CORE_DIR bound to the disposable dummy core"])
 
     v1 = zip_bytes("1.0.0")
     e1 = entry("1.0.0", v1)
@@ -210,7 +224,8 @@ def main():
     plan1, digest1, dest1 = canonical_plan(e1, raw_skills)
     plan_ok = "/./" not in dest1 and dest1 == m.validate_destination(skills, "xrpl-demo")
     add("canonical plan destination", "synthetic", "pass" if plan_ok else "fail",
-        f"raw_skills={raw_skills}; canonical_destination={dest1}; plan_digest={digest1}")
+        f"raw_skills={raw_skills}; canonical_destination={dest1}; plan_digest={digest1}",
+        overrides=["SELECTU5_CORE_DIR bound to the disposable dummy core"])
 
     fetch1 = CountingFetcher(v1)
     rc, out, err, sent_ok, sent_detail, sent_extra = op("fresh", lambda: m.cmd_install(
@@ -222,7 +237,7 @@ def main():
     if os.path.exists(installed_manifest):
         fresh_ok = fresh_ok and m.parse_manifest_strict(open(installed_manifest, encoding="utf-8").read())["version"] == "1.0.0"
     add("synthetic fresh install via cmd_install", "synthetic", "pass" if fresh_ok else "fail",
-        (out + err).strip()[-400:] + " | " + sent_detail, fetcher_calls=fetch1.calls, **sent_extra)
+        (out + err).strip()[-400:] + " | " + sent_detail, fetcher_calls=fetch1.calls, overrides=OVERRIDES, **sent_extra)
 
     # No-op: same plan/version/provenance. Must not fetch and must not mutate.
     fetch_noop = CountingFetcher(v1)
@@ -235,8 +250,9 @@ def main():
     noop_ok = rc == 0 and fetch_noop.calls == 0 and before_tree == after_tree and sent_ok
     add("synthetic matching-provenance no-op", "synthetic", "pass" if noop_ok else "fail",
         (out + err).strip()[-300:] + " | " + sent_detail,
-        fetcher_calls=fetch_noop.calls, tree_unchanged=(before_tree == after_tree), **sent_extra)
+        fetcher_calls=fetch_noop.calls, tree_unchanged=(before_tree == after_tree), overrides=OVERRIDES, **sent_extra)
 
+    old_active_snapshot = snapshot_tree(dest1)
     v2 = zip_bytes("1.0.1")
     e2 = entry("1.0.1", v2)
     reg2 = {"schema": "selectu5-registry/1", "updated_at": "2026-10-09", "curator": "qualification", "entries": [e2]}
@@ -249,9 +265,12 @@ def main():
     backups = [x for x in os.listdir(skills) if x.startswith("xrpl-demo.bak-")]
     active = m.local_skills(skills).get("xrpl-demo", {})
     prov = active.get("provenance") or {}
-    update_ok = rc == 0 and fetch2.calls == 1 and bool(backups) and sent_ok
+    update_ok = rc == 0 and fetch2.calls == 1 and len(backups) == 1 and sent_ok
+    backup_tree_unchanged = False
     backup_detail = "no backup found"
     if backups:
+        backup_tree_unchanged = snapshot_tree(os.path.join(skills, backups[0])) == old_active_snapshot
+        update_ok = update_ok and backup_tree_unchanged
         bman = os.path.join(skills, backups[0], "SKILL.md")
         bmeta_path = os.path.join(skills, backups[0], ".selectu5-meta.json")
         bver = m.parse_manifest_strict(open(bman, encoding="utf-8").read())["version"] if os.path.exists(bman) else None
@@ -262,7 +281,8 @@ def main():
     update_ok = update_ok and active.get("version") == "1.0.1" and prov.get("artifact_sha256") == sha(v2) and prov.get("commit") == "a" * 40
     add("synthetic update with backup", "synthetic", "pass" if update_ok else "fail",
         (out + err).strip()[-400:] + " | " + sent_detail + " | " + active_detail + " | " + backup_detail,
-        fetcher_calls=fetch2.calls, backups=backups, **sent_extra)
+        fetcher_calls=fetch2.calls, backups=backups, backup_tree_unchanged=backup_tree_unchanged,
+        overrides=OVERRIDES, **sent_extra)
 
     final_sentinels = sentinel_state()
     add("dummy core and credential sentinels unchanged at end", "synthetic",
