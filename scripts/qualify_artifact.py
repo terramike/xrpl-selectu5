@@ -128,6 +128,9 @@ def main():
         add("actual production retrieval", "actual_artifact", "blocked", f"{type(exc).__name__}: {exc}", redirect_chain=chain)
         data = None
 
+    with open(args.output_json, "w", encoding="utf-8") as fh:
+        json.dump({"schema": "selectu5-stage3-evidence/1", "partial": True, "checks": checks}, fh, indent=2)
+
     # Disposable environment with bound dummy core and credential sentinel.
     root = tempfile.mkdtemp(prefix="selectu5-stage3-")
     skills = os.path.join(root, "skills"); os.makedirs(skills)
