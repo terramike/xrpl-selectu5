@@ -19,6 +19,9 @@ import urllib.request
 import zipfile
 
 VERSION = "0.2.0"
+# Audit repair gate (2026-10-09): real installation stays disabled until
+# the acceptance criteria in the audit report pass. Dry-run cards stay on.
+INSTALL_ENABLED = False
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL_REGISTRY = os.path.join(SKILL_DIR, "registry", "registry.json")
 REMOTE_REGISTRY = "https://raw.githubusercontent.com/terramike/xrpl-selectu5/main/registry/registry.json"
@@ -238,6 +241,10 @@ def cmd_install(reg, local, entry_id, yes_version, source):
     if yes_version != e["version"]:
         print(f"\nRefused: --yes {yes_version} does not match registry version {e['version']}. Nothing installed.", file=sys.stderr)
         return 1
+    if not INSTALL_ENABLED:
+        print("\nReal installation is disabled during the Selectu5 audit repair. "
+              "The card above stays available as a dry run. Nothing was installed.", file=sys.stderr)
+        return 2
     if not e.get("ref"):
         print(f"\n{e['id']} has no pinned ref in the registry yet, so it is not installable. Nothing installed.", file=sys.stderr)
         return 1

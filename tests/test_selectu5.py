@@ -59,6 +59,7 @@ class TestSelectu5(unittest.TestCase):
         r = run("install", "xrpl-community-shows", "--yes", "9.9.9"); self.assertEqual(r.returncode, 1)
 
     def test_install_from_local_zip(self):
+        self.skipTest("real install disabled during audit repair; fixture kept for re-enable criteria")
         with tempfile.TemporaryDirectory() as d:
             zp = os.path.join(d, "a.zip")
             make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n# demo\n"})
@@ -71,6 +72,7 @@ class TestSelectu5(unittest.TestCase):
             self.assertIn("installed: xrpl-demo 1.0.0", r.stdout)
 
     def test_install_manifest_mismatch_refused(self):
+        self.skipTest("real install disabled during audit repair; fixture kept for re-enable criteria")
         with tempfile.TemporaryDirectory() as d:
             zp = os.path.join(d, "a.zip")
             make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 2.0.0\n---\n"})
@@ -81,7 +83,20 @@ class TestSelectu5(unittest.TestCase):
             self.assertEqual(r.returncode, 1)
             self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-demo")))
 
+    def test_install_disabled_during_repair(self):
+        with tempfile.TemporaryDirectory() as d:
+            zp = os.path.join(d, "a.zip")
+            make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n"})
+            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="abc", archive="file://" + zp)])
+            skills = os.path.join(d, "skills"); os.makedirs(skills)
+            r = run("install", "xrpl-demo", "--yes", "1.0.0",
+                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("disabled during the Selectu5 audit repair", r.stderr)
+            self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-demo")))
+
     def test_install_secret_named_file_refused(self):
+        self.skipTest("real install disabled during audit repair; fixture kept for re-enable criteria")
         with tempfile.TemporaryDirectory() as d:
             zp = os.path.join(d, "a.zip")
             make_zip(zp, {"SKILL.md": "---\nname: xrpl-demo\nversion: 1.0.0\n---\n", "seed.txt": "x"})
