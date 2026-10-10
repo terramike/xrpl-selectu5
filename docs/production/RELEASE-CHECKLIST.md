@@ -107,7 +107,8 @@ Historical evidence in this repository does not claim results for a future commi
 - [x] Test changed asset locators, digests, plans, redirects, and malformed distribution entries locally. Evidence: `tests/test_fixed_assets.py`.
 - [ ] Record Mike's distribution repository, package contents, license, audience, and publication authority.
 - [ ] Prepare the exact pilot asset (S, D, package root) and later catalog commit C for Mike's review.
-- [ ] Complete actual artifact qualification on Linux and Windows (Stage 3).
+- [x] Complete actual artifact qualification on Linux and Windows (Stage 3). Partial: v0.2.4 actual retrieval, fresh installation, no-op, rejected requests, and lock contention pass on Linux (Stage 3 evidence); update, actual interruption, and Windows actual runs remain.
+  Closed 2026-10-10: update, interruption, and Windows actual runs all pass (PR #5 CI, head `393cc564`). Partial: v0.2.4 actual retrieval, fresh installation, no-op, rejected requests, and lock contention pass on Linux (Stage 3 evidence); update, actual interruption, and Windows actual runs remain.
 
 ## PR #3 audit fixes
 
@@ -117,3 +118,22 @@ Historical evidence in this repository does not claim results for a future commi
 - [x] Enforce distribution records on skill entries only.
 - [x] Reject duplicate/colliding inventory paths and validate the finished ZIP with the installer archive validator.
 - [ ] Linux and Windows CI for the final PR #3 head (now including the new regression tests).
+
+## Stage 4 — release controls (2026-10-10)
+
+- [x] Enable Settings → Releases → Enable release immutability for future releases (operator, 2026-10-10; v0.2.4 predates the setting).
+- [x] Record effective branch protection on `main`: required linux+windows checks (strict), 1 approving review, dismiss stale reviews, no force pushes, no branch deletion, admins not enforced (verified via API 2026-10-10).
+- [x] Operator actions and return paths recorded in `docs/production/OPERATOR-ACTIONS.md`.
+- [x] Merge PR #5 and confirm Windows CI runs the actual-artifact harnesses green. (Merged 2026-10-10; all four CI jobs passed on PR #5 head.)
+- [ ] Merge PR #9 (catalog C) as Mike's separate decision.
+
+## Final-head reconciliation
+
+- [x] Confirm Stage 3 Linux and Windows push and pull-request CI for PR #5 head `e84f3f07f8648fea26d264bc488d4ef57ca9fff6`.
+- [x] Confirm full backup comparison and active package bytes after update and interruption recovery.
+- [x] Retain Stage 3 evidence for both platforms. See the run links in `evidence.json`.
+- [ ] Obtain required review and merge PR #5, PR #10, and PR #9. Reconcile overlapping evidence files during merge.
+- [ ] Review host consent, catalog authority, and credential-read evidence before installer enablement.
+- [ ] Obtain Mike's separate approval for the exact installer enablement change.
+
+Historical unchecked items above describe earlier candidates. This section records the final Stage 3 follow-up results.

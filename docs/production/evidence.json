@@ -1,376 +1,90 @@
 {
-  "artifact": {
-    "access": "read",
-    "archive_bytes": null,
-    "archive_path": null,
-    "catalog_commit_C": null,
-    "core_requirement": ">=0.14.1",
-    "id": "xrpl-selectu5",
-    "manifest_identity": "Source-inspected SKILL.md at S: xrpl-selectu5 0.2.3; downloaded artifact manifest not qualified.",
-    "observed_redirect_urls": [],
-    "package_root": null,
-    "private_authentication_required": true,
-    "production_fetcher_used": "selectu5.fetch_distribution",
-    "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-    "repository": "terramike/xrpl-selectu5",
-    "request_url": "https://github.com/terramike/xrpl-selectu5/archive/7db6c62951b552d15fa13cc09e1f083f073ca92a.zip",
-    "reviewed_permissions": "Catalog browsing/inventory only for catalog-only candidate; installer permissions card reviewed in SKILL.md/SPEC.md.",
-    "second_fetch_sha256": null,
-    "sha256_D": null,
-    "source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-    "status": "blocked",
-    "version": "0.2.3"
+  "artifact_0_2_4": {
+    "asset_url": "https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip",
+    "bytes": 31064,
+    "publication": "manual operator upload (pre-automation)",
+    "sha256_D": "98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2",
+    "source_commit_S": "5e157df7062e0528f04add18d4bc4f0cf2586b2e",
+    "verified": "independent re-download matched D; redirect lands on release-assets.githubusercontent.com"
   },
-  "blockers": [
-    {
-      "id": "transport-private-artifact",
-      "severity": "release_blocker_for_installer",
-      "statement": "Production fetcher cannot retrieve the private Selectu5 artifact (HTTP 404); no authenticated private-artifact transport is implemented."
-    },
-    {
-      "id": "license-and-controls",
-      "severity": "decision_pending",
-      "statement": "License selection and repository-control configuration remain Mike/maintainer decisions."
-    }
-  ],
+  "artifact_0_2_5": {
+    "asset_url": "https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip",
+    "bytes": 31217,
+    "package_root": "xrpl-selectu5-0.2.5",
+    "publication": "release-prep run 38038529791 (digest approved by Mike) + release-publish workflow; independent re-download matched D",
+    "sha256_D": "06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d",
+    "source_commit_S": "6b942346ea6ffaa86f71aa80cf1e741822c2dc31"
+  },
   "candidate": {
-    "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-    "branch": "codex/selectu5-production-qualification",
-    "commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
-    "install_enabled": false,
-    "license_decision": null,
-    "pr2_confirmed_ci_head": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
-    "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-    "repository_controls": {
-      "current": "Private repo; branch protection read returned HTTP 403 (GitHub Pro/public required); Actions runs read returned HTTP 403 (token permission).",
-      "proposed": "Protect main; require linux and windows checks; require 1 PR approval; dismiss stale approvals; require conversation resolution; block force pushes/deletion.",
-      "status": "blocked"
-    },
-    "supported_platforms_and_root_types": [
-      "Linux local filesystem roots (Python 3.12)",
-      "Windows local filesystem roots (Python 3.12; e86b2d7 CI verified)",
-      "UNC roots excluded until native pilot passes"
-    ],
-    "version": "0.2.3"
-  },
-  "checks": [
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "source_inspection",
-      "name": "source versions and gate",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "code=0.2.3 manifest=0.2.3 catalog=0.2.3 install_enabled=False",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": []
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "source_inspection",
-      "name": "unqualified entries list-only",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "xrpl-view-export, xrpl-community-shows, xrpl-selectu5",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": []
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": "python3 -m unittest discover -s tests",
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": 0,
-      "failed": null,
-      "kind": "synthetic",
-      "name": "repository test suite",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "......s.......................................................\n----------------------------------------------------------------------\nRan 62 tests in 10.351s\n\nOK (skipped=1)",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": []
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "synthetic",
-      "name": "dummy core binding",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "SELECTU5_CORE_DIR=/tmp/selectu5-qualify-h793ymtc/dummy-core; supplied core_version_text=0.14.1 read from dummy manifest by the harness",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "synthetic",
-      "name": "canonical plan destination",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "raw_skills=/tmp/selectu5-qualify-h793ymtc/./skills; canonical_destination=/tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo; plan_digest=8982fc806f52c1a061daad2fcff7197142ae905ea9a21ef09f14fb8d7ef8f33a",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "synthetic",
-      "name": "synthetic fresh install via cmd_install",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "igest (sha256): 8982fc806f52c1a061daad2fcff7197142ae905ea9a21ef09f14fb8d7ef8f33a\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.0 -> /tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "synthetic",
-      "name": "synthetic matching-provenance no-op",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "56): 8982fc806f52c1a061daad2fcff7197142ae905ea9a21ef09f14fb8d7ef8f33a\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-demo 1.0.0 is already installed with matching provenance. Nothing changed. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "synthetic",
-      "name": "synthetic update with backup",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "nt consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.1 -> /tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo\nprevious version kept at: /tmp/selectu5-qualify-h793ymtc/skills/xrpl-demo.bak-1a1248a411d-0c0cd226d6721fcf\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0) | active_version=1.0.1 provenance_version=1.0.1 provenance_digest=a71a41b4f98cd4bc0ee05abf41d327271f8218b3634a1607aced77d9cc50fce3 expected_v2_digest=a71a41b4f98cd4bc0ee05abf41d327271f8218b3634a1607aced77d9cc50fce3 | backup=xrpl-demo.bak-1a1248a411d-0c0cd226d6721fcf backup_version=1.0.0 backup_digest=817d946869d408a0495b6e1f4c14d55e415b88704a02f5dd4239b45c471587c3 expected_v1_digest=817d946869d408a0495b6e1f4c14d55e415b88704a02f5dd4239b45c471587c3",
-      "sentinels": [],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
-    },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "synthetic",
-      "name": "dummy core and credential sentinels unchanged at end",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "Final hashes compared with the pre-operation hashes; per-operation read counts are recorded on each operation check.",
-      "sentinels": [
-        {
-          "after": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab",
-          "before": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab",
-          "path": "SKILL.md"
-        },
-        {
-          "after": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
-          "before": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
-          "path": "credential-sentinel.txt"
-        }
+    "branch_protection_main": {
+      "allow_deletions": false,
+      "allow_force_pushes": false,
+      "dismiss_stale_reviews": true,
+      "enforce_admins": false,
+      "required_approving_review_count": 1,
+      "required_status_checks": [
+        "linux",
+        "windows"
       ],
-      "skipped": null,
-      "status": "pass",
-      "test_overrides": [
-        "install_enabled=True passed only to cmd_install inside this harness",
-        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
-        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
-        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR"
-      ]
+      "strict": true,
+      "verified": "GET /branches/main/protection returned HTTP 200 with these settings on 2026-10-10"
     },
-    {
-      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
-      "candidate_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "ci_url": null,
-      "command": null,
-      "evidence_path": "docs/production/ACCEPTANCE.md",
-      "exit_code": null,
-      "failed": null,
-      "kind": "actual_artifact",
-      "name": "actual production fetch",
-      "passed": null,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "OSError: HTTP Error 404: Not Found",
-      "sentinels": [],
-      "skipped": null,
-      "status": "blocked",
-      "test_overrides": []
-    },
-    {
-      "artifact_source_commit_S": "62648d7119353110957626b2aae8003d6cce64c8",
-      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
-      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
-      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075930",
-      "command": "Repository suite and scripts/qualify.py",
-      "exit_code": 0,
-      "failed": 0,
-      "kind": "live_operation",
-      "name": "PR #2 e86b2d7 Linux CI",
-      "passed": 61,
-      "platform": "Linux",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S.",
-      "skipped": 1,
-      "status": "pass",
-      "test_overrides": []
-    },
-    {
-      "artifact_source_commit_S": "62648d7119353110957626b2aae8003d6cce64c8",
-      "candidate_commit": "e86b2d707a3df75e76ecdba9bb9cfb620e5b2d3d",
-      "ci_checked_out_commit": "62648d7119353110957626b2aae8003d6cce64c8",
-      "ci_url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075633",
-      "command": "Repository suite and scripts/qualify.py",
-      "exit_code": 0,
-      "failed": 0,
-      "kind": "live_operation",
-      "name": "PR #2 e86b2d7 Windows CI",
-      "passed": 62,
-      "platform": "Windows",
-      "python_version": "3.12",
-      "qualification_code_commit": "104b8ed61ec7ae52e2938eaf4d1c56291ac2d740",
-      "reason": "Independently verified job logs and successful check result. Harness completed 10 checks with artifact status blocked. This CI probe used the synthetic PR merge commit as artifact source, separate from selected pilot S.",
-      "skipped": 0,
-      "status": "pass",
-      "test_overrides": []
-    }
+    "install_enabled": false,
+    "license": "Apache-2.0 (LICENSE and NOTICE in every distributed package)",
+    "package": "xrpl-selectu5",
+    "release_immutability": "enabled by operator 2026-10-10 (future releases only; v0.2.4 predates it)",
+    "repository": "terramike/xrpl-selectu5",
+    "repository_visibility": "public",
+    "version": "0.2.5"
+  },
+  "catalog_commit_C": {
+    "commit": "1519904c932d2e3893b14d19d997b0e7b1d02d6e",
+    "note": "Merging C does not enable installation: installs are authorized only from the bundled reviewed catalog and INSTALL_ENABLED remains False.",
+    "records": "xrpl-selectu5 0.2.5: S, D, package_root, distribution asset_url",
+    "status": "prepared, awaiting Mike merge decision (PR #9)"
+  },
+  "recorded_at": "2026-10-10",
+  "remaining": [
+    "Required review and merge of PR #5 at its verified head",
+    "Required review and merge of PR #10; reconcile its changes with PR #5 at merge",
+    "Mike decision and required review: merge PR #9 (catalog C)",
+    "Before installer enablement, review host consent, catalog authority, and credential-read evidence",
+    "Separate Mike decision: installer enablement; not authorized by this evidence"
   ],
-  "ci_artifact_policy": {
-    "candidate_identity": "Runner-generated evidence records the checked-out code commit separately from selected artifact source S.",
-    "files": [
-      "qualification-evidence.json",
-      "qualification-evidence.md"
+  "schema": "selectu5-production-evidence/2",
+  "stage3_actual_artifact_results": {
+    "evidence": [
+      "docs/production/STAGE3-RESULTS.md",
+      "docs/production/STAGE3-UPDATE-RESULTS.md",
+      "docs/production/STAGE3-INTERRUPT-RESULTS.md"
     ],
-    "name": "qualification-<job>-<checked-out-commit>",
-    "retention_days": 14
+    "fresh_installation": "pass",
+    "interruption_recovery": "pass on Linux and Windows; process terminated before the second directory move, then recovered and completed 0.2.5",
+    "lock_contention": "pass",
+    "platform": "Linux and Windows; push and pull_request CI passed for PR #5 head e84f3f07f8648fea26d264bc488d4ef57ca9fff6",
+    "rejected_requests": "pass",
+    "retrieval": "pass",
+    "same_version_noop": "pass",
+    "update_0_2_4_to_0_2_5": "pass",
+    "qualification_head": "e84f3f07f8648fea26d264bc488d4ef57ca9fff6",
+    "ci_runs": [
+      "https://github.com/terramike/xrpl-selectu5/actions/runs/38042700935",
+      "https://github.com/terramike/xrpl-selectu5/actions/runs/38042702810"
+    ],
+    "ci_checked_out_commits": {
+      "push": "e84f3f07f8648fea26d264bc488d4ef57ca9fff6",
+      "pull_request": "6f6dda89816f5e7326d32a9d3cda98809b687c96"
+    },
+    "backup_preservation": "Complete pre-update tree compared with exactly one backup, including file bytes, directories, and modes.",
+    "evidence_artifacts": [
+      "https://github.com/terramike/xrpl-selectu5/actions/runs/38042702810/artifacts/11666233512",
+      "https://github.com/terramike/xrpl-selectu5/actions/runs/38042702810/artifacts/11666288575"
+    ]
   },
-  "created_at_utc": "2026-10-10T06:40:10.398151Z",
-  "current_baseline": {
-    "ci": "All four PR/push jobs passed; 66 tests per platform with one platform-specific skip.",
-    "main_commit": "3e0f488e60bfe085630f74eca2435e09ee666dba",
-    "note": "Stage reports below are the historical PR #2 qualification record, not current installer code. Current Stage 1-2 fixed-asset work is on codex/selectu5-fixed-asset-transport.",
-    "pr2_tested_head": "7593c76e45b40f127c360eb297090d03f80791be"
-  },
-  "evidence_scope": "Historical local checks at 104b8ed and independently verified CI at e86b2d7. The final PR head has separate runner-generated qualification artifacts and check results.",
-  "known_limits": [
-    "Actual update qualification is synthetic until two production-transport artifacts exist.",
-    "Process interruption evidence does not prove power-loss durability.",
-    "UNC roots are excluded until a native UNC pilot passes.",
-    "Repository controls could not be verified through the current token/plan.",
-    "Final PR head evidence resides in retained CI artifacts; this file preserves explicitly identified historical checks."
-  ],
-  "repair_baseline": {
-    "merge_commit": "22528a2967133c78c59f7455188b8e5f1165fc0c",
-    "scope": "Historical repair checks, not new production qualification",
-    "tested_pr_head": "98e12c4e9c70f236e2122b17fb93fd0ac71338ca",
-    "version": "0.2.3"
-  },
-  "repository": "terramike/xrpl-selectu5",
-  "review_decisions": {
-    "catalog_only_release": "pending",
-    "installer_enablement": "not_approved",
-    "pilot_artifact": "blocked",
-    "public_visibility": "not_approved"
-  },
-  "schema": "selectu5-production-evidence/1",
-  "status": "qualification_in_progress"
+  "supersedes": "0.2.3-era evidence (artifact blocked on private transport); preserved in git history",
+  "enablement_review": {
+    "host_consent": "Test gate and trusted-catalog injections do not establish host consent.",
+    "credential_reads": "Unchanged sentinel hashes establish preservation, not absence of reads. Review read instrumentation separately.",
+    "catalog_authority": "Catalog C is prepared in PR #9. Existing bundled catalogs need a reviewed client update."
+  }
 }
