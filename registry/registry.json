@@ -1,6 +1,6 @@
 {
   "schema": "selectu5-registry/1",
-  "updated_at": "2026-10-09",
+  "updated_at": "2026-10-10",
   "curator": "terramike",
   "entries": [
     {
@@ -166,10 +166,16 @@
         "network": "Reads the catalog from GitHub. Distribution downloads use approved GitHub endpoints only during an approved install.",
         "signs": "Never."
       },
-      "notes": "Version 0.2.5 is the Stage 3 update-test package, prepared to qualify the actual 0.2.4 -> 0.2.5 update path against published release assets. Installation remains disabled. The release commit, artifact digest, and package root require a separate reviewed catalog update.",
-      "ref": null,
-      "artifact_sha256": null,
-      "package_root": null
+      "notes": "Version 0.2.5 qualified 2026-10-10: source commit 6b942346, release asset xrpl-selectu5-0.2.5.zip SHA-256 06b10f88. Actual retrieval, installation, update, interruption recovery pass on Linux. Installation remains disabled by the shipped gate.",
+      "ref": "6b942346ea6ffaa86f71aa80cf1e741822c2dc31",
+      "artifact_sha256": "06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d",
+      "package_root": "xrpl-selectu5-0.2.5",
+      "distribution": {
+        "type": "github_release_asset",
+        "source_commit": "6b942346ea6ffaa86f71aa80cf1e741822c2dc31",
+        "asset_url": "https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip",
+        "asset_name": "xrpl-selectu5-0.2.5.zip"
+      }
     }
   ]
 }
