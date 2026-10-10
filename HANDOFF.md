@@ -48,6 +48,55 @@ Installer enablement and exact release asset publication remain pending.
 Public repository visibility is authorized. Exact asset publication and installer enablement remain pending.
 Update this record before another pause. Preserve the tested identities and unresolved blockers.
 
+## 2026-10-10 — Stage 3 actual-artifact qualification started
+
+The v0.2.4 catalog-only prerelease is live at
+`https://github.com/terramike/xrpl-selectu5/releases/tag/v0.2.4` (repository is
+public; asset verified: 31,064 bytes, SHA-256
+`98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2`).
+`scripts/qualify_artifact.py` retrieves that asset through the production
+fetcher and exercises fresh installation, no-op, rejected requests, and lock
+contention in a disposable root. Linux evidence is recorded in
+`docs/production/STAGE3-RESULTS.md` and `stage3-evidence.json`; CI runs the
+same harness on Linux and Windows.
+
+Still open in Stage 3: an actual update (needs a second distinct reviewed
+artifact), an actual-artifact interruption run, and the Windows actual run.
+No catalog commit C exists yet, no entry is installable from the shipped
+client, and `INSTALL_ENABLED = False` remains the shipped gate.
+
+The 0.2.5 prerelease was published by the release-automation workflows
+(prep run 38038529791, digest approved, publish run verified) with release
+immutability enabled. Actual update qualification now passes on Linux:
+fresh 0.2.4 install -> production-fetcher update to 0.2.5 -> preserved
+backup and zero-fetch no-op (`STAGE3-UPDATE-RESULTS.md`). Remaining Stage 3
+items: the actual-artifact interruption run and the Windows actual run.
+
+The actual-artifact interruption run also passes on Linux: a real
+0.2.4 -> 0.2.5 update was SIGKILLed at the publish move, the next operation
+restored 0.2.4 from its backup and then completed the 0.2.5 install
+(`STAGE3-INTERRUPT-RESULTS.md`). Only the Windows actual run remains in
+Stage 3, via the qualification branch CI.
+
+Stage 3 closed 2026-10-10: CI on PR #5 head `393cc564` passed all four
+jobs (linux and windows, push and pull_request), including the
+actual-artifact, update, and interruption harnesses on Windows. The
+Windows failures found and fixed on the way: backslash snapshot keys,
+two vacuous checks (wrong-digest and lock) rebuilt on their own
+destinations, and proc.kill() for cross-platform termination.
+
+## Qualification evidence follow-up
+
+Head `d1b276b87bffee1c4f5a9a01501e6c5f44941247` included current main and passed all four CI jobs.
+A subsequent audit found that actual update qualification checked backup metadata without complete backup contents.
+The follow-up compares exactly one backup against the complete original tree, including directories, bytes, and file modes.
+It checks active package bytes and complete provenance after update and interrupted-update recovery.
+No-op checks now include empty directories and modes.
+Corruption, extra-backup, extra-directory, permission, and embedded-child syntax regressions cover these checks.
+CI retains Stage 3 evidence for Linux and Windows and records each checkout's qualification and installer identities.
+Use the final follow-up head's CI artifacts for acceptance. Earlier results remain historical evidence.
+The shipped installer remains disabled. Host consent, credential-read evidence, catalog authority, and release enablement still need review.
+
 ## 2026-10-10 — Stage 4 review package prepared
 
 Current state: public repository (Apache-2.0) with v0.2.4 and v0.2.5

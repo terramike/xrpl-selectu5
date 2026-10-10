@@ -130,6 +130,28 @@ Verified historical checks for `e86b2d7`:
 
 These changes do not qualify private artifact retrieval or enable installation.
 
+## Stage 3 addendum — actual-artifact qualification (2026-10-10)
+
+The v0.2.4 fixed release asset is published (public catalog-only prerelease)
+and `scripts/qualify_artifact.py` now qualifies the **actual artifact**: the
+production fetcher retrieves the live release asset (redirect chain recorded),
+and fresh installation, same-version no-op, rejected requests, and lock
+contention run against those exact bytes in a disposable root. Linux evidence:
+`docs/production/STAGE3-RESULTS.md` and `stage3-evidence.json`. CI runs the
+same harness on Linux and Windows.
+
+Stage 3 update leg **closed on Linux**: the actual 0.2.4 -> 0.2.5 update between
+published release assets passes through the production fetcher
+(`docs/production/STAGE3-UPDATE-RESULTS.md`), including post-update no-op
+and preserved 0.2.4 backup. Stage 3 is **complete**: the Windows actual run passed in CI on PR #5 head
+`393cc5647350ed67c582cdd15a29f1510f06a33a` (push run 38041672168 and
+pull_request run 38041675323, linux and windows jobs all successful,
+including retrieval, installation, update, interruption, and no-op). The actual-artifact interruption run also passes on
+Linux: a real update killed at the publish move recovered to 0.2.4 and then
+completed to 0.2.5 (`STAGE3-INTERRUPT-RESULTS.md`). No catalog
+commit C exists, no entry is installable from the shipped client, and
+`INSTALL_ENABLED = False` remains the shipped gate.
+
 ## Stage 4 — review package (2026-10-10)
 
 - `docs/production/evidence.json` now records the current state (schema
@@ -144,7 +166,7 @@ These changes do not qualify private artifact retrieval or enable installation.
 - Catalog commit C for the qualified 0.2.5 entry is prepared in PR #9
   (commit `1519904c932d2e3893b14d19d997b0e7b1d02d6e`). Merging C records
   qualified facts in the live catalog; it does not enable installation.
-- Remaining decisions: PR #5 merge + Windows CI confirmation, PR #9 merge,
+- PR #5 merged 2026-10-10 (Stage 3 complete, Windows CI confirmed). Remaining decisions: PR #9 merge,
   and any installer enablement (separate decision, out of scope here).
   `INSTALL_ENABLED = False` remains the shipped gate.
 
