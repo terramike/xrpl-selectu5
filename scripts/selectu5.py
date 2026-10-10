@@ -144,6 +144,8 @@ def validate_archive(zf, package_root):
             raise RegistryError("symbolic links in archives are refused")
         if info.is_dir():
             continue
+        if SECRET_NAME.search(os.path.basename(rel)):
+            raise RegistryError(f"credential-named file in package: {rel}")
         key = rel.lower()
         if key in seen:
             raise RegistryError(f"duplicate or colliding archive member: {rel}")
@@ -448,6 +450,131 @@ def permissions_card(e):
     if e.get("notes"):
         lines.append(f"notes: {esc(e['notes'])}")
     return "\n".join(lines)
+
+
+RECOVERY_DIRNAME = ".selectu5-recovery"
+STAGING_DIRNAME = ".selectu5-staging"
+
+
+class LockHeldError(RegistryError):
+    pass
+
+
+def install_lock(skills_root):
+    """One exclusive lock file for the skills root. Returns a release function."""
+    lock_path = os.path.join(skills_root, ".selectu5.lock")
+    try:
+        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+    except FileExistsError:
+        raise LockHeldError("another Selectu5 install holds the skills-root lock")
+    os.write(fd, f"{os.getpid()}\n".encode())
+    os.close(fd)
+
+    def release():
+        try:
+            os.unlink(lock_path)
+        except FileNotFoundError:
+            pass
+
+    return release
+
+
+def _txid():
+    import time
+    return f"{int(time.time() * 1000):x}-{os.getpid():x}"
+
+
+def recover_transactions(skills_root):
+    """Finish or roll back any recorded update before a new mutation starts."""
+    actions = []
+    rec_dir = os.path.join(skills_root, RECOVERY_DIRNAME)
+    if not os.path.isdir(rec_dir):
+        return actions
+    for name in sorted(os.listdir(rec_dir)):
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(rec_dir, name)
+        try:
+            tx = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            continue
+        if tx.get("stage") == "done":
+            continue
+        target, backup = tx.get("target"), tx.get("backup")
+        if backup and os.path.isdir(backup) and target and not os.path.isdir(target):
+            shutil.move(backup, target)
+            actions.append(f"restored {tx.get('id')} from its update backup")
+        tx["stage"] = "recovered"
+        json.dump(tx, open(path, "w", encoding="utf-8"), indent=2)
+    return actions
+
+
+def install_package(e, data, skills_root, core_version_text):
+    """The recoverable install engine. The CLI gate stays shut until acceptance.
+
+    Stages on the destination filesystem, records the transaction before
+    the first rename, keeps every prior backup, and restores the original
+    active folder when the final rename fails.
+    """
+    verify_artifact(data, e.get("artifact_sha256"))
+    if not e.get("package_root"):
+        raise RegistryError("the catalog records no package root for this entry")
+    skills_root = os.path.realpath(skills_root)
+    os.makedirs(skills_root, exist_ok=True)
+    recovered = recover_transactions(skills_root)
+    release = install_lock(skills_root)
+    txid = _txid()
+    rec_dir = os.path.join(skills_root, RECOVERY_DIRNAME)
+    staging_root = os.path.join(skills_root, STAGING_DIRNAME)
+    staged = os.path.join(staging_root, txid)
+    target = validate_destination(skills_root, e["id"])
+    backup = os.path.join(skills_root, f"{e['id']}.bak-{txid}")
+    record = {"tx": txid, "id": e["id"], "version": e["version"], "stage": "staging",
+              "target": target, "backup": backup if os.path.isdir(target) else None,
+              "commit": e.get("ref"), "artifact_sha256": e.get("artifact_sha256")}
+    try:
+        os.makedirs(rec_dir, exist_ok=True)
+        os.makedirs(staged, exist_ok=False)
+        zf = zipfile.ZipFile(io.BytesIO(data))
+        validate_archive(zf, e["package_root"])
+        root_prefix = e["package_root"] + "/"
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            rel = _member_relpath(info.filename)[len(root_prefix):]
+            dest = os.path.join(staged, rel)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            extract_member(zf, info, dest)
+        manifest = parse_manifest_strict(open(os.path.join(staged, "SKILL.md"), encoding="utf-8").read(LIMITS["manifest_bytes"]))
+        if manifest["name"] != e["id"] or manifest["version"] != e["version"] or manifest["access"] != e["access"]:
+            raise RegistryError("manifest does not match the approved plan")
+        check_core_compat(e.get("core_version"), core_version_text)
+        meta = {"id": e["id"], "version": e["version"], "commit": e.get("ref"),
+                "artifact_sha256": e.get("artifact_sha256"), "tx": txid}
+        json.dump(meta, open(os.path.join(staged, ".selectu5-meta.json"), "w", encoding="utf-8"), indent=2)
+        # Recheck approval-critical facts under the lock, then record before rename.
+        target = validate_destination(skills_root, e["id"])
+        record["stage"] = "validated"
+        json.dump(record, open(os.path.join(rec_dir, txid + ".json"), "w", encoding="utf-8"), indent=2)
+        moved_active = False
+        try:
+            if os.path.isdir(target):
+                shutil.move(target, backup)
+                moved_active = True
+                record["stage"] = "active-moved"
+                json.dump(record, open(os.path.join(rec_dir, txid + ".json"), "w", encoding="utf-8"), indent=2)
+            shutil.move(staged, target)
+        except Exception:
+            if moved_active and not os.path.isdir(target) and os.path.isdir(backup):
+                shutil.move(backup, target)
+            raise
+        record["stage"] = "done"
+        json.dump(record, open(os.path.join(rec_dir, txid + ".json"), "w", encoding="utf-8"), indent=2)
+        return {"installed": target, "backup": backup if moved_active else None, "recovered": recovered}
+    finally:
+        if os.path.isdir(staged):
+            shutil.rmtree(staged, ignore_errors=True)
+        release()
 
 
 def cmd_list(reg, local, source):

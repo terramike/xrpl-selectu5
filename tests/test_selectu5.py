@@ -306,3 +306,93 @@ class TestArchiveAndManifest(unittest.TestCase):
             m.check_core_compat(">=1.0.0", "unknown")
         with self.assertRaises(Exception):
             m.check_core_compat("~1.0", "1.0.0")
+
+class TestRecoverableInstall(unittest.TestCase):
+    def mod(self):
+        sys.path.insert(0, os.path.join(SKILL, "scripts"))
+        import selectu5
+        return selectu5
+
+    def pkg(self, files, top="xrpl-demo-abc"):
+        buf = io.BytesIO()
+        import zipfile as zf_mod
+        with zf_mod.ZipFile(buf, "w") as z:
+            for rel, body in files.items():
+                z.writestr(f"{top}/{rel}", body)
+        return buf.getvalue()
+
+    def demo_entry(self, data):
+        import hashlib
+        e = entry("xrpl-demo", "1.0.0", ref="a" * 40)
+        e["artifact_sha256"] = hashlib.sha256(data).hexdigest()
+        e["package_root"] = "xrpl-demo-abc"
+        return e
+
+    MANIFEST = "---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n# demo\n"
+
+    def test_A15_A16_offline_install_and_credential_refusal(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            data = self.pkg({"SKILL.md": self.MANIFEST, "data/shows-fixture.json": "{}"})
+            out = m.install_package(self.demo_entry(data), data, d, "0.14.1")
+            self.assertTrue(os.path.isfile(os.path.join(out["installed"], "SKILL.md")))
+            bad = self.pkg({"SKILL.md": self.MANIFEST, "seed.txt": "x"})
+            e = self.demo_entry(bad)
+            with self.assertRaises(Exception):
+                m.install_package(e, bad, d, "0.14.1")
+
+    def test_A17_failed_final_move_restores_active(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            data = self.pkg({"SKILL.md": self.MANIFEST})
+            m.install_package(self.demo_entry(data), data, d, "0.14.1")
+            marker = os.path.join(d, "xrpl-demo", "SKILL.md")
+            before = open(marker).read()
+            real_move = m.shutil.move
+            calls = {"n": 0}
+            def flaky(src, dst):
+                calls["n"] += 1
+                if calls["n"] == 2:
+                    raise OSError("injected failure")
+                return real_move(src, dst)
+            m.shutil.move = flaky
+            try:
+                with self.assertRaises(Exception):
+                    m.install_package(self.demo_entry(data), data, d, "0.14.1")
+            finally:
+                m.shutil.move = real_move
+            self.assertTrue(os.path.isfile(marker))
+            self.assertEqual(open(marker).read(), before)
+
+    def test_A18_recovery_record_rolls_back(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            target = os.path.join(d, "xrpl-demo"); backup = os.path.join(d, "xrpl-demo.bak-tx1")
+            os.makedirs(backup)
+            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("old")
+            rec = os.path.join(d, m.RECOVERY_DIRNAME); os.makedirs(rec)
+            json.dump({"tx": "tx1", "id": "xrpl-demo", "stage": "active-moved", "target": target, "backup": backup},
+                      open(os.path.join(rec, "tx1.json"), "w"))
+            actions = m.recover_transactions(d)
+            self.assertTrue(actions)
+            self.assertTrue(os.path.isfile(os.path.join(target, "SKILL.md")))
+
+    def test_A19_lock_conflict(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            release = m.install_lock(d)
+            try:
+                with self.assertRaises(Exception):
+                    m.install_lock(d)
+            finally:
+                release()
+
+    def test_A29_self_update_engine_path(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            e = entry("xrpl-selectu5", "0.2.0", ref="b" * 40)
+            import hashlib
+            data = self.pkg({"SKILL.md": "---\nname: xrpl-selectu5\nversion: 0.2.0\naccess: read\n---\n"}, top="xrpl-selectu5-abc")
+            e["artifact_sha256"] = hashlib.sha256(data).hexdigest(); e["package_root"] = "xrpl-selectu5-abc"
+            out = m.install_package(e, data, d, "0.14.1")
+            self.assertTrue(os.path.isfile(os.path.join(out["installed"], ".selectu5-meta.json")))
