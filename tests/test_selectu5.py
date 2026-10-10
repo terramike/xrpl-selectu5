@@ -30,11 +30,11 @@ def entry(eid, version, kind="skill", ref=None, archive=None):
 
 class TestSelectu5(unittest.TestCase):
     def test_version(self):
-        r = run("version"); self.assertEqual(r.returncode, 0); self.assertIn("0.2.2", r.stdout)
+        r = run("version"); self.assertEqual(r.returncode, 0); self.assertIn("0.2.3", r.stdout)
 
     def test_list_has_seed_entries(self):
         r = run("list"); self.assertEqual(r.returncode, 0)
-        for needle in ("xrpl-community-shows", "clavi5", "visu5", "xrpl-selectu5 0.2.2"):
+        for needle in ("xrpl-community-shows", "clavi5", "visu5", "xrpl-selectu5 0.2.3"):
             self.assertIn(needle, r.stdout)
 
     def test_show_permissions_card(self):
@@ -226,7 +226,9 @@ class TestArchiveAndManifest(unittest.TestCase):
         buf = io.BytesIO()
         with zf_mod.ZipFile(buf, "w") as z:
             for rel, body in files.items():
-                z.writestr(rel, body)
+                info = zf_mod.ZipInfo("placeholder")
+                info.filename = rel
+                z.writestr(info, body)
         buf.seek(0)
         return zf_mod.ZipFile(buf)
 
@@ -236,8 +238,10 @@ class TestArchiveAndManifest(unittest.TestCase):
             m.validate_archive(self.zio({"a/SKILL.md": "x", "b/SKILL.md": "y"}), "a")
         with self.assertRaises(Exception):
             m.validate_archive(self.zio({"root/../evil": "x", "root/SKILL.md": "y"}), "root")
+        raw = self.zio({"root\\evil": "x", "root/SKILL.md": "y"})
+        self.assertIn("root\\evil", [info.orig_filename for info in raw.infolist()])
         with self.assertRaises(Exception):
-            m.validate_archive(self.zio({"root\\evil": "x", "root/SKILL.md": "y"}), "root")
+            m.validate_archive(raw, "root")
         dup = io.BytesIO()
         import zipfile as zf_mod
         with zf_mod.ZipFile(dup, "w") as z:

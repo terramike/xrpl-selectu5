@@ -1,59 +1,80 @@
-# Selectu5 audit repair — round 3 status report
+# Selectu5 remaining audit repairs — version 0.2.3
 
-Date: 2026-10-09 (America/Los_Angeles).
-Branch: `fix/selectu5-install-boundaries-r2`.
-Reviewed round-2 commit: `849095c57ea16dd140567436f66ace00daf8ce78`.
-Package version: 0.2.2.
-Installer gate in shipped code: `INSTALL_ENABLED = False`.
+## Release decision
 
-This report does not authorize gate enablement, merge, deployment, or publication. The core XRPL Muse implementation is unchanged. Community Shows is owned outside this Selectu5 repair; Alfred did not modify that repo.
+The installer remains disabled. All bundled skill entries remain list-only.
+This repair addresses findings N01–N06 from the production audit.
+The source baseline is commit `1b9c340c191704b60d0e7dfa88a1eac025fd4f5b`.
+The historical version 0.2.2 packet remains in `AUDIT-PACKET.md`.
 
-## Round-3 repairs
+## Changes and evidence
 
-- Transaction journals now record intended state before each directory move: `prepared`, `old-moved`, `published`, then `done` or `recovered`.
-- Journals record old and new version, commit, and artifact identity. Recovery validates every pending record before mutation and resolves state by validated package identity, not directory existence alone.
-- Recovery is repeatable after its own interruption. Post-publication verification or journal failure follows a rollback protocol that restores the old active package and marks the transaction recovered.
-- Internal staging, recovery, and lock paths are validated as plain directories/files before use. A pre-existing staging symlink refuses before external writes.
-- Configured core overlap is refused in both directions.
-- Inventory validates supplied roots, rejects duplicate identity fields, and reads bounded, identity-bound provenance.
-- Archive validation uses `ZipInfo.orig_filename`, so raw backslash names stay rejected under Windows normalization.
-- Extraction enforces the deadline during and after member extraction. Download checks enforce elapsed time around chunk reads; one blocking socket read can still be bounded by its socket timeout rather than an ideal hard wall-clock guarantee.
-- Supported version grammar is SemVer core plus prerelease, without build metadata and without leading zeroes.
-- Provenance differences suppress the “everything current” summary.
-- README, script docstring, SKILL.md, SPEC.md, and the Selectu5 registry card now describe version 0.2.2 and the actual reads/writes.
+| Finding | Change | Regression evidence |
+|---|---|---|
+| N01: Incorrect terminal recovery | Mark rollback recovered only after validated restoration or removal of a failed new install. Preserve ambiguous published content and its backup. | Corrupt provenance after publication during a new install and an update. Both cases retain a pending journal and refuse automatic recovery. Existing successful rollback tests still pass. |
+| N02: Completed records block installation | Count only pending journals toward the 100-record and 1 MiB limits. Archive terminal records on the next recovery call. Retain the latest 100 terminal records. Preserve package backups. | Complete 150 installs, restart recovery in another process, and complete another update. Migrate 101 legacy terminal records. Refuse 101 pending records without removal. |
+| N03: Windows path boundaries | Preserve drive and UNC anchors. Reject symlinks, junctions, and other Windows reparse points. Compare protected paths with platform case rules. | Model drive and UNC component walks. Windows CI runs native junction checks from a nonroot working directory for roots, targets, inventory, staging, recovery, and backups. |
+| N04: Core read limits | Read only public core manifests. Do not read core provenance, including reserved aliases and the configured core path. | Instrument file reads for three reserved core names. Refuse any provenance read for a configured core folder. |
+| N05: Windows ZIP fixture | Preserve a raw backslash in the ZIP fixture. Assert the raw member name before validation. | The original negative archive test now checks the intended archive bytes on Windows. The archive policy remains strict. |
+| N06: Download deadline | Run URL transport in a separate process. Terminate and collect that process after a 60-second total deadline. Preserve byte limits, transport errors, and redirect checks. | A local HTTP server sends a slow response body or delays headers. Both actual transport tests stop at a reduced test deadline. File URL tests check success, overflow, and missing files. |
 
-## Finding map
+## Validation
 
-Original findings: F01 partial-to-repaired in code pending final audit; F02 mechanism repaired, release integration pending because no bundled entry is installable; F03 repaired in code with actual process-termination tests; F04 repaired with the stated socket-read limit; F05 repaired; F06 outside Alfred scope (Codex/owner supplies artifact facts); F07 repaired; F08 repaired for tested cases; F09 repaired for tested inventory boundaries; F10 repaired for tested provenance/version states; F11 repaired; F12 repaired in docs; F13 partial because Windows CI and maintainer decisions remain.
+Local environment: Linux, Python 3.12.14.
+Command: `python3 -m unittest discover -s tests -v`.
+The suite contains 62 tests. Linux skips only the native Windows junction test.
+GitHub CI runs the same suite on Linux and Windows with Python 3.12.
+The pull request checks provide the authoritative CI result for the submitted commit.
 
-Repair findings: R01 closed; R02 repaired in code with process-death evidence; R03 repaired with whole-set journal validation and bounded strict JSON; R04 mechanism repaired, live private retrieval unverified; R05 repaired for staging/core/inventory probes; R06 repaired pending Windows CI; R07 repaired for identity-bound provenance and summary logic; R08 improved with actual termination, recovery interruption, post-publication failure, and command-path tests; R09 repaired in docs; R10 repaired with the stated transport limit.
+Additional checks: Python compilation, offline catalog listing, version output, and Git whitespace validation.
+No test enables the shipped installer or executes an installed package.
+The slow transport tests use a local HTTP server. Production artifact transport still requires approved HTTPS endpoints.
 
-Acceptance map: A01 closed for tested cases; A02 repaired pending final audit; A03 repaired for supplied/internal/inventory roots; A04 closed; A05 closed for tested cases; A06 closed for CLI binding (host consent remains separate); A07 mechanism closed, release facts pending; A08 partial (no live private artifact retrieval); A09 closed; A10 partial for deadline evidence; A11 repaired with extraction deadline tests; A12 repaired pending Windows CI; A13 closed; A14 closed; A15 pending outside Alfred scope; A16 partial-to-tested through engine/command path; A17 repaired with rollback protocol; A18 repaired with actual process termination after each move; A19 closed for tested lock exclusion; A20 repaired for tested boundaries; A21 repaired for the defined grammar; A22 repaired for tested provenance cases; A23 closed; A24 closed; A25 closed; A26 closed; A27 partial (ordinary commands are read-only in tests); A28 open until Linux and Windows CI pass on the final commit; A29 repaired with interrupted self-update evidence; A30 repaired in docs.
+## Limits and operator instructions
 
-## Evidence
+An invalid published identity can require manual recovery. Selectu5 preserves the journal, active content, and available backup.
+This repair does not delete unknown active content automatically.
 
-Local Linux evidence after round 3:
+1. Stop installation attempts when recovery reports an ambiguous state.
+2. Preserve the pending journal and all associated package folders.
+3. Compare the active manifest and provenance with the journal identities.
+4. Restore a validated old backup only after an operator reviews the recorded state.
+5. Run recovery again after the operator resolves the active path.
 
-- `python3 -m unittest discover -s tests` — 51 tests, OK, 0 skipped.
-- Actual process-termination tests terminate an update after the first directory move and after the second directory move, then recover and continue.
-- A separate child process is terminated during recovery restoration; a second recovery completes.
-- Injected post-publication journal failure restores the old active version; a later valid update succeeds.
-- Command-path tests cover plan-before-fetch, digest failure, missing access, staging symlink refusal, core overlap refusal, raw ZIP names, extraction deadline, provenance identity, and current-summary suppression.
+History retention removes only validated terminal journal records beyond the latest 100 records.
+Package backups remain available. Operators must review backups before manual removal.
+More than 1,000 current journal files or history files requires manual review.
+The process deadline includes transport and output collection. Process startup can add platform scheduling time.
+The timeout implementation requires permission to create a Python subprocess.
 
-Environment-limited evidence:
+These tests cover process interruption and ordinary filesystem failures.
+They do not prove power-loss durability or resistance to a hostile concurrent filesystem writer.
+UNC anchor traversal has a model test. A native network-share pilot remains a separate release check.
 
-- Windows CI must pass on the exact final commit before A28 can close. This environment's token cannot read GitHub Actions runs (HTTP 403 previously observed), so no remote result is claimed here.
-- No live private distribution retrieval was performed.
-- No bundled catalog entry is currently installable: each lacks at least a reviewed artifact digest or package root.
+## Next steps toward production
 
-## Durability and limits
+1. Review this pull request and require successful Linux and Windows checks before merge.
+2. Keep `INSTALL_ENABLED = False` in the catalog-only release.
+3. Select a license before public distribution.
+4. Configure required branch checks and review controls before production changes.
+5. Review the exact source commit, ZIP bytes, package root, manifest, and permissions for one pilot artifact.
+6. Record its SHA-256 digest and immutable source commit in a subsequent reviewed catalog update.
+7. Test actual HTTPS retrieval, installation, update, interruption, and recovery in disposable Linux and Windows roots.
+8. Check the configured core and credential sentinels after each pilot operation.
+9. Review native network-share behavior if the production release supports UNC roots.
+10. Obtain Mike's release decision before enabling the installer or changing repository visibility.
 
-The protocol distinguishes process death from power loss. Journals use atomic replacement and fsync where supported, but two directory renames are not one atomic transaction. Recovery uses validated journal and package identity. The supported model still assumes no hostile concurrent writer inside the skills root.
+Use a distinct package version for different artifact bytes.
+Do not invent a companion artifact digest or reuse an earlier version for changed bytes.
+The catalog cannot contain a digest of its own future archive. Record the artifact digest in a subsequent catalog commit.
+Companion packaging and service behavior require their own review.
 
-## Maintainer decisions remaining
+## Glossary
 
-1. Review the final commit and both CI jobs.
-2. Supply reviewed artifact facts before any entry becomes installable.
-3. Choose a license before public distribution.
-4. Enable branch protection and required checks on `main`.
-5. Separately approve any installer gate change after final review.
+- Terminal journal: A validated journal with stage `done` or `recovered`.
+- Pending journal: A validated journal with another accepted stage.
+- Provenance: The installed identity record in `.selectu5-meta.json`.
+- Reparse point: A Windows filesystem object that can redirect path operations.
+- UNC anchor: The server and share at the start of a Windows network path.
+
+This report uses STE100-based technical English. It is not a certified ASD dictionary check.

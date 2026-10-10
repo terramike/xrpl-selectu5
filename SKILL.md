@@ -1,6 +1,6 @@
 ---
 name: xrpl-selectu5
-version: 0.2.2
+version: 0.2.3
 core_version: ">=0.14.1"
 access: read
 author: terramike
@@ -60,7 +60,12 @@ skills folder.
   update runs without the user's word for that exact item and version.
 - A showcase entry (Clavi5, Visu5) is not an install. Show its real
   next step: enroll or open the page.
-- Every output prints the version line: `xrpl-selectu5 0.2.2`.
+- Every output prints the version line: `xrpl-selectu5 0.2.3`.
+
+## Requirements
+
+Use Python 3.12 or later on Linux or Windows.
+The installer remains disabled in version 0.2.3.
 
 ## Use
 

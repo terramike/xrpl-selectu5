@@ -121,3 +121,30 @@ Mike reads each new entry before it goes in the registry. The review checks:
   bundled registry is a dated snapshot; when the remote catalog cannot
   be read, the client prints the snapshot date and a stale warning
   instead of pretending freshness.
+
+## 12. Remaining audit repairs in version 0.2.3
+
+1. The installer MUST preserve an unresolved journal when published identity verification fails and validated rollback cannot finish.
+2. The installer MUST preserve unknown active content and its available backup in this failure state.
+3. Recovery MUST refuse ambiguous content until the operator resolves the recorded state.
+4. Recovery MUST limit pending records to 100 records and 1 MiB in total.
+5. Recovery MUST validate every current record before it changes the current records or packages.
+6. Recovery MUST move terminal records into `.selectu5-recovery/history` on the next recovery call.
+7. Recovery MUST retain the latest 100 terminal records and MUST preserve all package backups.
+8. Recovery MUST refuse more than 1,000 current files or history files for manual review.
+9. Path checks MUST preserve drive and UNC anchors before canonicalization.
+10. Path checks MUST reject symlinks, junctions, and other Windows reparse points at filesystem boundaries.
+11. Core inventory MUST read only public manifests, including reserved core aliases and the configured core path.
+12. URL downloads MUST run in a separate process with a 60-second total wall deadline.
+13. The parent MUST terminate and collect the download process when this deadline passes.
+14. The download process MUST enforce the existing byte limits and redirect policy.
+15. The installer MUST remain disabled until the artifact pilot and release review finish.
+
+Python 3.12 or later is required. CI uses Python 3.12 on Linux and Windows.
+A terminated download produces no installed package. A URL deadline failure does not silently change the selected source.
+The history limit does not limit package backups. Operators must review backups before manual removal.
+These rules cover process interruption. They do not establish resistance to power loss or hostile concurrent filesystem changes.
+
+Glossary: A terminal record has stage `done` or `recovered`. A pending record has any other accepted stage.
+A reparse point is a Windows filesystem object that can redirect path operations.
+A UNC anchor identifies the server and share at the start of a Windows network path.

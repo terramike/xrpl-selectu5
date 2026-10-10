@@ -1,3 +1,5 @@
+> Historical audit packet for version 0.2.2. The version 0.2.3 repair is described in `REPAIR-REPORT.md`.
+
 # Selectu5 audit packet
 
 Date: 2026-10-09 (America/Los_Angeles).

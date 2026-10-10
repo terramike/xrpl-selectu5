@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""xrpl-selectu5 0.2.2 — Selectu5, the XRPL Muse skill app store.
+"""xrpl-selectu5 0.2.3 — Selectu5, the XRPL Muse skill app store.
 
 Companion skill. Read-only toward the core: it reads a curated registry
 and the version frontmatter of local skills. Installs happen only with
@@ -16,6 +16,7 @@ import re
 import secrets
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 import time
@@ -23,7 +24,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-VERSION = "0.2.2"
+VERSION = "0.2.3"
 # Audit repair gate (2026-10-09): real installation stays disabled until
 # the acceptance criteria in the audit report pass. Dry-run cards stay on.
 INSTALL_ENABLED = False
@@ -91,27 +92,57 @@ class _HttpsOnlyRedirect(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_HttpsOnlyRedirect())
 
 
+DOWNLOAD_DEADLINE = 60
+
+
+def _read_url(src, limit):
+    """Child-only transport. The parent enforces the total wall deadline."""
+    req = urllib.request.Request(src, headers={"User-Agent": f"xrpl-selectu5/{VERSION}"})
+    with _OPENER.open(req, timeout=20) as resp:
+        chunks, total = [], 0
+        while True:
+            chunk = resp.read(min(65536, limit + 1 - total))
+            if not chunk:
+                return b"".join(chunks)
+            total += len(chunk)
+            if total > limit:
+                raise RegistryError(f"source passes the {limit}-byte limit")
+            chunks.append(chunk)
+
+
+def _download_worker():
+    try:
+        src, limit = json.loads(sys.stdin.buffer.read())
+        sys.stdout.buffer.write(_read_url(src, limit))
+        return 0
+    except Exception as exc:
+        sys.stderr.write(str(exc))
+        return 2 if isinstance(exc, RegistryError) else 3
+
+
+def _read_url_bounded(src, limit):
+    # A process can be terminated even when a socket read makes slow progress.
+    code = "import runpy,sys; d=runpy.run_path(sys.argv[1]); sys.exit(d['_download_worker']())"
+    try:
+        result = subprocess.run([sys.executable, "-c", code, os.path.abspath(__file__)],
+                                input=json.dumps([src, limit]).encode("utf-8"),
+                                capture_output=True, timeout=DOWNLOAD_DEADLINE)
+    except subprocess.TimeoutExpired as exc:
+        raise RegistryError("network deadline passed") from exc
+    if result.returncode:
+        message = result.stderr.decode("utf-8", errors="replace")[:4096]
+        if result.returncode == 2:
+            raise RegistryError(message)
+        raise OSError(message or "download worker failed")
+    if len(result.stdout) > limit:
+        raise RegistryError(f"source passes the {limit}-byte limit")
+    return result.stdout
+
+
 def read_limited(src, limit):
-    """Read a source in bounded chunks. Stop before the limit is passed."""
-    import time
-    deadline = time.monotonic() + 60
+    """Read bounded data. Terminate URL transport after 60 wall seconds."""
     if src.startswith(("https://", "file://")):
-        req = urllib.request.Request(src, headers={"User-Agent": f"xrpl-selectu5/{VERSION}"})
-        with _OPENER.open(req, timeout=20) as resp:
-            chunks, total = [], 0
-            while True:
-                if time.monotonic() > deadline:
-                    raise RegistryError("network deadline passed")
-                chunk = resp.read(65536)
-                if time.monotonic() > deadline:
-                    raise RegistryError("network deadline passed")
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > limit:
-                    raise RegistryError(f"source passes the {limit}-byte limit")
-                chunks.append(chunk)
-            return b"".join(chunks)
+        return _read_url_bounded(src, limit)
     with open(src, "rb") as fh:
         data = fh.read(limit + 1)
     if len(data) > limit:
@@ -427,17 +458,38 @@ def compare_versions(a, b):
     return (ka > kb) - (ka < kb)
 
 
+def _is_redirect(path):
+    """Reject symlinks, junctions, and other Windows reparse points."""
+    if os.path.islink(path) or getattr(os.path, "isjunction", lambda p: False)(path):
+        return True
+    if os.name == "nt" and os.path.lexists(path):
+        return bool(getattr(os.lstat(path), "st_file_attributes", 0) &
+                    getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+    return False
+
+
 def _root_components(skills_dir):
-    """Check every existing component of the supplied root. No mutation."""
+    """Check anchored components before canonicalization. No mutation."""
     supplied = os.path.abspath(os.path.expanduser(str(skills_dir)))
-    cur = os.path.sep if supplied.startswith(os.path.sep) else ""
-    for part in supplied.split(os.path.sep):
+    drive, tail = os.path.splitdrive(supplied)
+    cur = drive + os.path.sep
+    if os.path.lexists(cur) and _is_redirect(cur):
+        raise RegistryError("skills root path contains a symlink or reparse component")
+    for part in tail.split(os.path.sep):
         if not part:
             continue
-        cur = os.path.join(cur, part) if cur else part
-        if os.path.lexists(cur) and os.path.islink(cur):
-            raise RegistryError("skills root path contains a symlink component")
+        cur = os.path.join(cur, part)
+        if os.path.lexists(cur) and _is_redirect(cur):
+            raise RegistryError("skills root path contains a symlink or reparse component")
     return os.path.realpath(supplied)
+
+
+def _within(path, parent):
+    path, parent = os.path.normcase(path), os.path.normcase(parent)
+    try:
+        return os.path.commonpath((path, parent)) == parent
+    except ValueError:  # Different Windows drives have no common path.
+        return False
 
 
 def validate_destination(skills_dir, entry_id):
@@ -448,15 +500,15 @@ def validate_destination(skills_dir, entry_id):
     home = os.path.realpath(os.path.expanduser("~"))
     core_dir = os.path.realpath(os.environ.get("SELECTU5_CORE_DIR", os.path.expanduser("~/workspace/xrpl-muse-skill")))
     for bad in (os.path.join(home, ".xrpl"), core_dir):
-        if root == bad or root.startswith(bad + os.sep):
+        if _within(root, bad):
             raise RegistryError("skills root cannot sit inside the core or credential directory")
     target = os.path.join(root, entry_id)
-    if target == core_dir or target.startswith(core_dir + os.sep) or core_dir.startswith(target + os.sep):
+    if _within(target, core_dir) or _within(core_dir, target):
         raise RegistryError("target overlaps the configured core directory")
     if os.path.dirname(target) != root:
         raise RegistryError("target escapes the skills root")
     if os.path.lexists(target):
-        if os.path.islink(target) or not os.path.isdir(target):
+        if _is_redirect(target) or not os.path.isdir(target):
             raise RegistryError("target exists and is not a plain directory")
     if os.path.isdir(root):
         for name in os.listdir(root):
@@ -532,7 +584,7 @@ def _manifest_identity(text):
 
 def _read_provenance(path, expected_id=None, expected_version=None):
     meta_path = os.path.join(path, ".selectu5-meta.json")
-    if os.path.islink(meta_path) or not os.path.isfile(meta_path):
+    if _is_redirect(meta_path) or not os.path.isfile(meta_path):
         return None
     try:
         if os.path.getsize(meta_path) > 16384:
@@ -561,14 +613,15 @@ def local_skills(skills_dir):
     _root_components(skills_dir)  # raises on any supplied symlink component
     if not os.path.isdir(skills_dir):
         raise RegistryError("skills root is not a directory")
+    core_dir = os.path.realpath(os.environ.get("SELECTU5_CORE_DIR", os.path.expanduser("~/workspace/xrpl-muse-skill")))
     for name in sorted(os.listdir(skills_dir)):
         if not name.startswith("xrpl") or ".bak-" in name or name.startswith("."):
             continue
         path = os.path.join(skills_dir, name)
-        if os.path.islink(path) or not os.path.isdir(path):
+        if _is_redirect(path) or not os.path.isdir(path):
             continue
         md = os.path.join(path, "SKILL.md")
-        if os.path.islink(md) or not os.path.isfile(md):
+        if _is_redirect(md) or not os.path.isfile(md):
             continue
         try:
             with open(md, encoding="utf-8") as fh:
@@ -580,7 +633,7 @@ def local_skills(skills_dir):
         version = fields.get("version") if identity_ok and version_ok else "unknown"
         expected_id = fields.get("name") if identity_ok else name
         found[name] = {"version": version, "path": os.path.join(skills_dir, name),
-                       "provenance": _read_provenance(path, expected_id, version if version_ok else None)}
+                       "provenance": None if name in RESERVED_CORE_IDS or _within(os.path.realpath(path), core_dir) else _read_provenance(path, expected_id, version if version_ok else None)}
     for folder, entry_id in {"xrpl": "xrpl-muse-skill"}.items():
         if folder in found and entry_id not in found:
             found[entry_id] = found[folder]
@@ -632,7 +685,7 @@ class LockHeldError(RegistryError):
 def _ensure_internal_dir(root, name):
     path = os.path.join(root, name)
     if os.path.lexists(path):
-        if os.path.islink(path) or not os.path.isdir(path):
+        if _is_redirect(path) or not os.path.isdir(path):
             raise RegistryError(f"internal path {name} is not a plain directory")
         return path
     os.makedirs(path)
@@ -640,13 +693,14 @@ def _ensure_internal_dir(root, name):
 
 
 def _check_internal_file(path, label):
-    if os.path.lexists(path) and (os.path.islink(path) or not os.path.isfile(path)):
+    if os.path.lexists(path) and (_is_redirect(path) or not os.path.isfile(path)):
         raise RegistryError(f"{label} is not a plain file")
 
 
 @contextlib.contextmanager
 def skills_lock(skills_root):
     """OS process lock. Process death releases it; the file is a rendezvous."""
+    _root_components(skills_root)
     os.makedirs(skills_root, exist_ok=True)
     lock_path = os.path.join(skills_root, ".selectu5.lock")
     _check_internal_file(lock_path, "skills-root lock")
@@ -722,10 +776,10 @@ JOURNAL_RECORD_BYTES = 16384
 
 def _package_identity(path):
     """Validated package identity at a path, or None when not identifiable."""
-    if not path or os.path.islink(path) or not os.path.isdir(path):
+    if not path or _is_redirect(path) or not os.path.isdir(path):
         return None
     md = os.path.join(path, "SKILL.md")
-    if os.path.islink(md) or not os.path.isfile(md):
+    if _is_redirect(md) or not os.path.isfile(md):
         return None
     try:
         with open(md, encoding="utf-8") as fh:
@@ -761,7 +815,7 @@ def _is_new_identity(identity, tx):
 
 def _validate_journal(rec_dir, name, root):
     path = os.path.join(rec_dir, name)
-    if os.path.islink(path) or not os.path.isfile(path):
+    if _is_redirect(path) or not os.path.isfile(path):
         raise RegistryError(f"recovery record {name} is not a plain file")
     if os.path.getsize(path) > JOURNAL_RECORD_BYTES:
         raise RegistryError(f"recovery record {name} passes the size limit; no mutation was made")
@@ -798,7 +852,7 @@ def _validate_journal(rec_dir, name, root):
     target = validate_destination(root, entry_id)
     backup = os.path.join(root, backup_name) if backup_name else None
     for candidate in (target, backup):
-        if candidate and os.path.lexists(candidate) and os.path.islink(candidate):
+        if candidate and os.path.lexists(candidate) and _is_redirect(candidate):
             raise RegistryError("recovery path is a symlink; no mutation was made")
     return tx, target, backup
 
@@ -812,13 +866,40 @@ def _rename_dir(src, dst):
 def _cleanup_staged(root, txid):
     staging_root = os.path.join(root, STAGING_DIRNAME)
     if os.path.lexists(staging_root):
-        if os.path.islink(staging_root) or not os.path.isdir(staging_root):
+        if _is_redirect(staging_root) or not os.path.isdir(staging_root):
             raise RegistryError("staging path is not a plain directory")
         staged = os.path.join(staging_root, txid)
         if os.path.lexists(staged):
-            if os.path.islink(staged) or not os.path.isdir(staged):
+            if _is_redirect(staged) or not os.path.isdir(staged):
                 raise RegistryError("staged path is not a plain directory")
             shutil.rmtree(staged)
+
+
+def _archive_history(rec_dir, root, records):
+    """Keep the latest 100 terminal journals. Never remove package backups."""
+    terminal = [tx for tx, _, _ in records if tx["stage"] in ("done", "recovered")]
+    history = os.path.join(rec_dir, "history")
+    if not terminal and not os.path.lexists(history):
+        return
+    history = _ensure_internal_dir(rec_dir, "history")
+    names = sorted(os.listdir(history))
+    if len(names) > 1000:
+        raise RegistryError("too many history records; manual review is required")
+    for name in names:
+        tx, _, _ = _validate_journal(history, name, root)
+        if tx["stage"] not in ("done", "recovered"):
+            raise RegistryError("history contains a pending recovery record")
+    for tx in terminal:
+        name = tx["tx"] + ".json"
+        if os.path.lexists(os.path.join(history, name)):
+            raise RegistryError("history record collides with a current record")
+    for tx in terminal:
+        name = tx["tx"] + ".json"
+        os.rename(os.path.join(rec_dir, name), os.path.join(history, name))
+    for name in sorted(os.listdir(history))[:-100]:
+        os.unlink(os.path.join(history, name))
+    _fsync_dir(history)
+    _fsync_dir(rec_dir)
 
 
 def recover_transactions(skills_root):
@@ -828,20 +909,22 @@ def recover_transactions(skills_root):
     rec_dir = os.path.join(root, RECOVERY_DIRNAME)
     if not os.path.isdir(rec_dir):
         return actions
-    if os.path.islink(rec_dir):
+    if _is_redirect(rec_dir):
         raise RegistryError("recovery directory is a symlink")
     names = [n for n in sorted(os.listdir(rec_dir)) if n.endswith(".json") and not n.startswith(".")]
-    if len(names) > JOURNAL_MAX_RECORDS:
-        raise RegistryError("too many pending recovery records; no mutation was made")
+    if len(names) > 1000:
+        raise RegistryError("too many recovery files; manual review is required")
     total_bytes = 0
     records = []
     for name in names:  # validate the whole pending set before any mutation
         path = os.path.join(rec_dir, name)
-        if os.path.isfile(path) and not os.path.islink(path):
-            total_bytes += os.path.getsize(path)
-            if total_bytes > JOURNAL_MAX_BYTES:
-                raise RegistryError("recovery records pass the total size limit; no mutation was made")
         records.append(_validate_journal(rec_dir, name, root))
+        if records[-1][0]["stage"] not in ("done", "recovered"):
+            total_bytes += os.path.getsize(path)
+    pending = [r for r in records if r[0]["stage"] not in ("done", "recovered")]
+    if len(pending) > JOURNAL_MAX_RECORDS or total_bytes > JOURNAL_MAX_BYTES:
+        raise RegistryError("pending recovery records pass the limits; no mutation was made")
+    _archive_history(rec_dir, root, records)
     for tx, target, backup in records:
         if tx["stage"] in ("done", "recovered"):
             continue
@@ -983,8 +1066,12 @@ def install_package(e, data, skills_root, core_version_text):
                     _rename_dir(target, failed_dir)
                 if moved_active and not os.path.lexists(target) and os.path.isdir(backup):
                     _rename_dir(backup, target)
-                record["stage"] = "recovered"
+                restored = _package_identity(target) if os.path.lexists(target) else None
+                resolved = (_is_old_identity(restored, record) if moved_active else not os.path.lexists(target))
+                record["stage"] = "recovered" if resolved else "published"
                 _write_journal(rec_dir, record)
+                if not resolved:
+                    raise RegistryError("published identity is invalid; recovery remains unresolved; preserve active content and backup")
                 raise
             return {"installed": target, "backup": backup if moved_active else None, "recovered": recovered}
         finally:

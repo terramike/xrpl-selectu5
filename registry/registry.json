@@ -146,7 +146,7 @@
       "id": "xrpl-selectu5",
       "name": "Selectu5 (this store)",
       "kind": "skill",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "core_version": ">=0.14.1",
       "access": "read",
       "author": "terramike",
@@ -166,8 +166,8 @@
         "network": "Reads the catalog from GitHub. Distribution downloads use approved GitHub endpoints only during an approved install.",
         "signs": "Never."
       },
-      "notes": "Round-3 repair branch; repo stays private and team-only. Installer gate stays disabled pending audit. Self ref stays at the last merged release until a reviewed release is cut.",
-      "ref": "d97c6657932177e06e96a0f021d3d1c52a90b639",
+      "notes": "Version 0.2.3 contains the remaining audit repairs. Installation remains disabled. The release commit, artifact digest, and package root require a separate reviewed catalog update.",
+      "ref": null,
       "artifact_sha256": null,
       "package_root": null
     }
