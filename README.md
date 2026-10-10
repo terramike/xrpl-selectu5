@@ -25,3 +25,9 @@ Registry: `registry/registry.json` (`selectu5-registry/1`), curated by
 @terramike. One repo per add-on skill. Spec: `SPEC.md`.
 
 Private while building. Public on the maintainer's word.
+
+Status (2026-10-09): the v0.2.0 installer is under audit repair on the
+`fix/selectu5-install-boundaries` branch. Real installation is disabled
+until the repair acceptance criteria pass; browsing, permissions cards,
+and update checks remain available. License: not yet selected; the
+maintainer decides before any public distribution.
