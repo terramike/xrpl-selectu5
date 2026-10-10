@@ -31,4 +31,5 @@ Real installation remains disabled. Catalog browsing and local inventory remain 
 Use Python 3.12 or later on Linux or Windows.
 See `REPAIR-REPORT.md` for the new tests and remaining release conditions.
 
-License: Mike must select a license before public distribution.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Copyright 2026 Mike Mingucci.

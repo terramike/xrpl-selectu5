@@ -14,6 +14,8 @@ Package root inside the ZIP: `xrpl-selectu5-<version>/` (one root component, rec
 | `README.md` | repo root | User-facing overview |
 | `SPEC.md` | repo root | Specification |
 | `CHANGELOG.md` | repo root | Version history |
+| `LICENSE` | repo root | Apache License, Version 2.0 |
+| `NOTICE` | repo root | Project attribution |
 
 ## Excluded
 
@@ -27,4 +29,4 @@ Package root inside the ZIP: `xrpl-selectu5-<version>/` (one root component, rec
 
 - A public ZIP exposes every source file inside it, including Python source. A separate distribution repository does not keep packaged Python source private.
 - The bundled catalog names companion repositories and permissions cards; publishing this package publishes that catalog text.
-- License selection controls reuse rights for all included files; do not copy a license from another repository.
+- Mike selected Apache-2.0 on 2026-10-10. Include `LICENSE` and `NOTICE` in every distributed package.
