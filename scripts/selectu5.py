@@ -468,6 +468,7 @@ def load_registry(offline=False):
             return None, None
         LAST_CATALOG["date"] = reg.get("updated_at")
         LAST_CATALOG["curator"] = reg.get("curator")
+        LAST_CATALOG["offline"] = offline
         return reg, src
     print(f"xrpl-selectu5 {VERSION}: cannot read any registry ({'; '.join(errors)})", file=sys.stderr)
     return None, None
@@ -535,7 +536,7 @@ def header(source=None):
         print(f"registry: {label}")
         if LAST_CATALOG.get("date"):
             print(f"catalog date: {esc(LAST_CATALOG['date'])}")
-        if source == LOCAL_REGISTRY and not os.environ.get("SELECTU5_REGISTRY"):
+        if source == LOCAL_REGISTRY and not os.environ.get("SELECTU5_REGISTRY") and not LAST_CATALOG.get("offline"):
             print("note: the remote catalog could not be read; this bundled snapshot may be stale.")
 
 
