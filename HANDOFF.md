@@ -71,3 +71,9 @@ immutability enabled. Actual update qualification now passes on Linux:
 fresh 0.2.4 install -> production-fetcher update to 0.2.5 -> preserved
 backup and zero-fetch no-op (`STAGE3-UPDATE-RESULTS.md`). Remaining Stage 3
 items: the actual-artifact interruption run and the Windows actual run.
+
+The actual-artifact interruption run also passes on Linux: a real
+0.2.4 -> 0.2.5 update was SIGKILLed at the publish move, the next operation
+restored 0.2.4 from its backup and then completed the 0.2.5 install
+(`STAGE3-INTERRUPT-RESULTS.md`). Only the Windows actual run remains in
+Stage 3, via the qualification branch CI.

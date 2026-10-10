@@ -1,0 +1,33 @@
+{
+  "checks": [
+    {
+      "evidence": "killed at: MOVE2 /tmp/selectu5-interrupt-lj5ku03x/skills/.selectu5-staging/1a1250bb391-0343cff5f31e8bfe -> /tmp/selectu5-interrupt-lj5ku03x/skills/xrpl-selectu5; mid-state: ['.selectu5-recovery', '.selectu5-staging', '.selectu5.lock', 'xrpl-selectu5.bak-1a1250bb391-0343cff5f31e8bfe']; recovery rc=0; final active=0.2.5 sha=06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d guards_ok=True",
+      "kind": "actual_artifact",
+      "name": "actual-artifact interruption at a directory move, then recovery",
+      "status": "pass"
+    }
+  ],
+  "disposable_root": "/tmp/selectu5-interrupt-lj5ku03x",
+  "final_provenance": {
+    "artifact_sha256": "06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d",
+    "commit": "6b942346ea6ffaa86f71aa80cf1e741822c2dc31",
+    "id": "xrpl-selectu5",
+    "schema": "selectu5-install/1",
+    "tx": "1a1250bc3f9-d7eb3a2bbf742259",
+    "version": "0.2.5"
+  },
+  "guards_unchanged": true,
+  "killed_at_move": "MOVE2 /tmp/selectu5-interrupt-lj5ku03x/skills/.selectu5-staging/1a1250bb391-0343cff5f31e8bfe -> /tmp/selectu5-interrupt-lj5ku03x/skills/xrpl-selectu5",
+  "mid_state_entries": [
+    ".selectu5-recovery",
+    ".selectu5-staging",
+    ".selectu5.lock",
+    "xrpl-selectu5.bak-1a1250bb391-0343cff5f31e8bfe"
+  ],
+  "moves_seen": [
+    "MOVE1 /tmp/selectu5-interrupt-lj5ku03x/skills/xrpl-selectu5 -> /tmp/selectu5-interrupt-lj5ku03x/skills/xrpl-selectu5.bak-1a1250bb391-0343cff5f31e8bfe",
+    "MOVE2 /tmp/selectu5-interrupt-lj5ku03x/skills/.selectu5-staging/1a1250bb391-0343cff5f31e8bfe -> /tmp/selectu5-interrupt-lj5ku03x/skills/xrpl-selectu5"
+  ],
+  "recovery_install_rc": 0,
+  "schema": "selectu5-stage3-interrupt-evidence/1"
+}

@@ -143,8 +143,9 @@ same harness on Linux and Windows.
 Stage 3 update leg **closed on Linux**: the actual 0.2.4 -> 0.2.5 update between
 published release assets passes through the production fetcher
 (`docs/production/STAGE3-UPDATE-RESULTS.md`), including post-update no-op
-and preserved 0.2.4 backup. Stage 3 remains partial only for the
-actual-artifact interruption run and the Windows actual run (CI on the
-qualification branch). No catalog
+and preserved 0.2.4 backup. Stage 3 remains partial only for the Windows actual run (CI on the
+qualification branch). The actual-artifact interruption run also passes on
+Linux: a real update killed at the publish move recovered to 0.2.4 and then
+completed to 0.2.5 (`STAGE3-INTERRUPT-RESULTS.md`). No catalog
 commit C exists, no entry is installable from the shipped client, and
 `INSTALL_ENABLED = False` remains the shipped gate.
