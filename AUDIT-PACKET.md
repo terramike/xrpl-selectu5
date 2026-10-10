@@ -7,7 +7,7 @@ Purpose: give the next auditor everything needed to review the current Selectu5 
 
 - Repository: `terramike/xrpl-selectu5` (private; verified `private: true`).
 - Branch: `fix/selectu5-install-boundaries-r2`.
-- Candidate commit: `39fead3f365efd6b06b13cdfe25e4a9ee763a4b3`.
+- Candidate code commit: `39fead3f365efd6b06b13cdfe25e4a9ee763a4b3` (this packet is added on top; audit the branch head that contains this file).
 - Base/main commit: `5bcbd9a7c72f280f2939e39a06d9749d3a2139f2`.
 - Previous reviewed commits: `bb1072536906c93b4d98ff6c36ca0749ef368a7f` (v0.2.0 audit), `084594f7fe4ed746845ce5da4bf0f357755660f8` (round 1), `849095c57ea16dd140567436f66ace00daf8ce78` (round 2).
 - Package version: `0.2.2`.
@@ -102,7 +102,7 @@ Round-2 repair items: R01 closed; R02 repaired in code; R03 repaired; R04 mechan
 
 ## What is still open
 
-1. **Windows CI evidence:** `.github/workflows/tests.yml` defines Linux and Windows jobs. Alfred's automation token cannot read GitHub Actions runs (HTTP 403 observed earlier), so this packet does not claim a green Windows result. The auditor or Mike must confirm both jobs for commit `39fead3f365efd6b06b13cdfe25e4a9ee763a4b3`.
+1. **Windows CI evidence:** `.github/workflows/tests.yml` defines Linux and Windows jobs. Alfred's automation token cannot read GitHub Actions runs (HTTP 403 observed earlier), so this packet does not claim a green Windows result. The auditor or Mike must confirm both jobs for the final audited branch head.
 2. **No installable artifact facts:** no bundled entry has a complete reviewed commit + artifact digest + package root set. Any future entry needs separately reviewed facts before installability.
 3. **Live distribution retrieval unverified:** tests use fixture fetchers and dummy packages. No real private GitHub archive was downloaded through the enabled path.
 4. **Power-loss durability:** journals use atomic replacement and fsync where supported, but two renames are not one atomic transaction. Process-death recovery is tested; power-loss is not claimed beyond platform support.
