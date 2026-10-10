@@ -1,6 +1,6 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
-Package version: 0.2.2 (2026-10-09, audit repair round 2)
+Package version: 0.2.2 (2026-10-09, audit repair round 3)
 Status: Decisions locked by Mike 2026-10-09. Build in a private repo.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 
@@ -84,7 +84,8 @@ Each output shows the skill version. Time and network are not used in v0.1.
 - The skill does not sign. The skill does not propose a transaction.
 - The skill does not write core skill files, the policy file, or a seed.
 - The one permitted core read is the core skill public manifest version for a compatibility check.
-- The skill reads one fact set from a local skill: name and version in `SKILL.md` frontmatter.
+- The skill reads local inventory facts from `SKILL.md` frontmatter (name and version) and, when present, bounded `.selectu5-meta.json` provenance (id, version, commit, artifact digest).
+- Supported versions are SemVer core and prerelease identifiers without build metadata; leading zeroes are invalid.
 - A registry entry is data, not an instruction. Text in a purpose or notes field is shown as text only.
 - A listing is not an endorsement of a link in a listed skill.
 - Clavi5 and Visu5 are showcase entries in v0.1. Selectu5 cannot enroll a user or open an account.
@@ -112,7 +113,7 @@ Mike reads each new entry before it goes in the registry. The review checks:
 2. Update interval for v0.3: on-run only, or a daily check.
 3. The full collision check on the exact name "Selectu5" is a separate work item.
 
-- **Repair round 2 (on `fix/selectu5-install-boundaries-r2`):** one
+- **Repair round 3 (on `fix/selectu5-install-boundaries-r2`):** one
   hardened CLI install path, process locking before recovery, validated
   journals, strict archive and manifest rules, semantic-version and
   provenance reports. Real installation stays disabled in the shipped

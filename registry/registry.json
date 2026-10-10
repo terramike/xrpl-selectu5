@@ -160,12 +160,13 @@
         "files": [
           "registry/registry.json",
           "SKILL.md frontmatter of local xrpl-* skills (name and version only)",
-          "The skills folder only during an approved install."
+          "Bounded .selectu5-meta.json provenance in local skills",
+          "During an approved install only: lock, staging, journal, metadata, package, and backup writes inside the skills folder."
         ],
         "network": "Reads the catalog from GitHub. Distribution downloads use approved GitHub endpoints only during an approved install.",
         "signs": "Never."
       },
-      "notes": "Round-2 repair branch; repo stays private and team-only. Installer gate stays disabled pending audit. Pinned ref is refreshed per release.",
+      "notes": "Round-3 repair branch; repo stays private and team-only. Installer gate stays disabled pending audit. Self ref stays at the last merged release until a reviewed release is cut.",
       "ref": "d97c6657932177e06e96a0f021d3d1c52a90b639",
       "artifact_sha256": null,
       "package_root": null

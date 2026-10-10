@@ -1,70 +1,59 @@
-# Selectu5 audit repair — round 2 status report
+# Selectu5 audit repair — round 3 status report
 
 Date: 2026-10-09 (America/Los_Angeles).
 Branch: `fix/selectu5-install-boundaries-r2`.
-Base commit: `5bcbd9a7c72f280f2939e39a06d9749d3a2139f2` (current private main).
-Review input: `Selectu5-Repair-Review-and-Alfred-Instructions-STE100.md`.
+Reviewed round-2 commit: `849095c57ea16dd140567436f66ace00daf8ce78`.
+Package version: 0.2.2.
+Installer gate in shipped code: `INSTALL_ENABLED = False`.
 
-Real installation remains DISABLED in the shipped command (`INSTALL_ENABLED = False`). Tests exercise the enabled path only by injecting the gate and a fixture fetcher into the same `cmd_install()` orchestration function the CLI calls. The core XRPL Muse implementation is unchanged.
+This report does not authorize gate enablement, merge, deployment, or publication. The core XRPL Muse implementation is unchanged. Community Shows is owned outside this Selectu5 repair; Alfred did not modify that repo.
 
-## What round 2 changed
+## Round-3 repairs
 
-- `cmd_install()` now has one installation path. The legacy `fetch_archive()`, `install_root()`, `extractall()`, permissive manifest acceptance, and same-name backup deletion are removed.
-- A real install requires `--yes <exact version>` and `--plan <digest>`. Missing or mismatched plan approval is refused before any fetch. Dry-run examples print both arguments.
-- Installs require the locally reviewed bundled catalog. Remote and environment-selected catalogs are browse-only.
-- Entries without an immutable 40-char commit, reviewed artifact SHA-256, and package root are list-only.
-- Distribution retrieval uses exact approved owner/repository pairs, approved HTTPS redirect hosts, bounded reads, and a deadline.
-- Recovery and installation run under an OS process lock acquired before recovery. Lock files are rendezvous points; process death releases the OS lock.
-- Journals use random transaction IDs, root-relative backup names, strict schema validation, atomic replacement, and fsync where the platform supports it. Corrupt or ambiguous records stop mutation.
-- Root validation checks supplied path components before canonicalization and refuses core/credential roots, symlink targets, and case collisions.
-- Archive validation covers original member names, directory entries, file/directory collisions, unsupported member types, Windows reserved/ADS-style names, credential filenames, aggregate expanded bytes during extraction, and an extraction deadline.
-- Semantic versions sort releases after prereleases and compare numeric prerelease identifiers numerically. An equal-base prerelease core does not satisfy a release requirement.
-- Installed provenance (`.selectu5-meta.json`) is read back bounded and validated. Same-version digest or commit differences report as provenance differences, never as silently current.
-- Package version is consistently `0.2.2` in the skill manifest, client, tests, and Selectu5 registry entry.
+- Transaction journals now record intended state before each directory move: `prepared`, `old-moved`, `published`, then `done` or `recovered`.
+- Journals record old and new version, commit, and artifact identity. Recovery validates every pending record before mutation and resolves state by validated package identity, not directory existence alone.
+- Recovery is repeatable after its own interruption. Post-publication verification or journal failure follows a rollback protocol that restores the old active package and marks the transaction recovered.
+- Internal staging, recovery, and lock paths are validated as plain directories/files before use. A pre-existing staging symlink refuses before external writes.
+- Configured core overlap is refused in both directions.
+- Inventory validates supplied roots, rejects duplicate identity fields, and reads bounded, identity-bound provenance.
+- Archive validation uses `ZipInfo.orig_filename`, so raw backslash names stay rejected under Windows normalization.
+- Extraction enforces the deadline during and after member extraction. Download checks enforce elapsed time around chunk reads; one blocking socket read can still be bounded by its socket timeout rather than an ideal hard wall-clock guarantee.
+- Supported version grammar is SemVer core plus prerelease, without build metadata and without leading zeroes.
+- Provenance differences suppress the “everything current” summary.
+- README, script docstring, SKILL.md, SPEC.md, and the Selectu5 registry card now describe version 0.2.2 and the actual reads/writes.
 
-## Finding status
+## Finding map
 
-| Finding | Round-2 status | Evidence |
-| --- | --- | --- |
-| F01 | Repaired in code | Strict IDs, reserved core IDs, supplied-root component checks, engine-boundary validation. |
-| F02 | Repaired in code | Required plan digest, exact repo pairs, trusted local catalog, immutable commits, artifact digest verification. |
-| F03 | Repaired in code | OS lock before recovery, random tx IDs, validated journals, unique backups, rename refusal on existing destinations, restore-on-failure. Process-death lock/recovery test included. |
-| F04 | Repaired in code | Bounded catalog/distribution reads, aggregate extraction counter, extraction deadline. |
-| F05 | Repaired in code | Strict manifest parser is the install path; missing or duplicate safety fields fail. |
-| F06 | Out of Alfred scope | Community Shows is owned by Codex. Selectu5 only lists facts Mike supplies; no Alfred-owned fixture/artifact work remains in this chat. The entry stays list-only until Mike supplies reviewed artifact facts. |
-| F07 | Repaired in code | Same install path checks core compatibility; equal-base prerelease cores are refused. |
-| F08 | Repaired in code | Catalog metadata is validated and escaped; invalid catalog data is distinguished from transport unavailability. |
-| F09 | Repaired in code | Inventory rejects backup/symlink cases and requires valid manifest identity for a known version. |
-| F10 | Repaired in code | Semantic ordering and provenance-difference reporting are implemented and tested. |
-| F11 | Repaired in code | `installed` needs no registry; explicit `--offline` uses only the bundled catalog. |
-| F12 | Repaired in docs | SKILL.md, SPEC.md, README, registry card, and report describe the same gated behavior and version. |
-| F13 | Partial | Linux tests pass locally. Windows CI must pass on the exact pushed commit before this can close. License and branch protection remain maintainer decisions. |
+Original findings: F01 partial-to-repaired in code pending final audit; F02 mechanism repaired, release integration pending because no bundled entry is installable; F03 repaired in code with actual process-termination tests; F04 repaired with the stated socket-read limit; F05 repaired; F06 outside Alfred scope (Codex/owner supplies artifact facts); F07 repaired; F08 repaired for tested cases; F09 repaired for tested inventory boundaries; F10 repaired for tested provenance/version states; F11 repaired; F12 repaired in docs; F13 partial because Windows CI and maintainer decisions remain.
 
-## Acceptance evidence
+Repair findings: R01 closed; R02 repaired in code with process-death evidence; R03 repaired with whole-set journal validation and bounded strict JSON; R04 mechanism repaired, live private retrieval unverified; R05 repaired for staging/core/inventory probes; R06 repaired pending Windows CI; R07 repaired for identity-bound provenance and summary logic; R08 improved with actual termination, recovery interruption, post-publication failure, and command-path tests; R09 repaired in docs; R10 repaired with the stated transport limit.
 
-Executed locally on Linux:
+Acceptance map: A01 closed for tested cases; A02 repaired pending final audit; A03 repaired for supplied/internal/inventory roots; A04 closed; A05 closed for tested cases; A06 closed for CLI binding (host consent remains separate); A07 mechanism closed, release facts pending; A08 partial (no live private artifact retrieval); A09 closed; A10 partial for deadline evidence; A11 repaired with extraction deadline tests; A12 repaired pending Windows CI; A13 closed; A14 closed; A15 pending outside Alfred scope; A16 partial-to-tested through engine/command path; A17 repaired with rollback protocol; A18 repaired with actual process termination after each move; A19 closed for tested lock exclusion; A20 repaired for tested boundaries; A21 repaired for the defined grammar; A22 repaired for tested provenance cases; A23 closed; A24 closed; A25 closed; A26 closed; A27 partial (ordinary commands are read-only in tests); A28 open until Linux and Windows CI pass on the final commit; A29 repaired with interrupted self-update evidence; A30 repaired in docs.
 
-- `python3 -m unittest discover -s tests` — 44 tests, OK, 0 skipped.
-- Command-path tests cover missing plan before fetch, successful dummy install, wrong digest, missing manifest access, core prerelease refusal, lock contention, corrupt journal refusal, symlinked root refusal, portable archive rejection, provenance difference reporting, default catalog fallback, backup collision, interrupted self-update restore, and a terminated lock-holder process followed by recovery and installation.
+## Evidence
 
-Environment-limited:
+Local Linux evidence after round 3:
 
-- Windows behavior is covered by portable unit assertions and the CI workflow definition. A green Windows job for the exact final commit is still required evidence; this environment's token cannot read Actions runs (HTTP 403).
+- `python3 -m unittest discover -s tests` — 51 tests, OK, 0 skipped.
+- Actual process-termination tests terminate an update after the first directory move and after the second directory move, then recover and continue.
+- A separate child process is terminated during recovery restoration; a second recovery completes.
+- Injected post-publication journal failure restores the old active version; a later valid update succeeds.
+- Command-path tests cover plan-before-fetch, digest failure, missing access, staging symlink refusal, core overlap refusal, raw ZIP names, extraction deadline, provenance identity, and current-summary suppression.
 
-## Community Shows
+Environment-limited evidence:
 
-Community Shows is owned by Codex, not by this Selectu5 repair. The catalog may list it from facts Mike supplies. Alfred does not prepare its fixed distribution artifact from this chat. Until Mike supplies a reviewed commit, artifact digest, and package root, the entry remains list-only.
+- Windows CI must pass on the exact final commit before A28 can close. This environment's token cannot read GitHub Actions runs (HTTP 403 previously observed), so no remote result is claimed here.
+- No live private distribution retrieval was performed.
+- No bundled catalog entry is currently installable: each lacks at least a reviewed artifact digest or package root.
 
-## Remaining limits
+## Durability and limits
 
-- Two renames are not one atomic transaction; validated journals are the recovery mechanism. Process-death recovery is tested. Power-loss durability is limited to the documented fsync/replace protocol and is not claimed beyond platform support.
-- The skills root assumes no hostile concurrent writer. Pre-existing symlink and journal attacks are refused, but a hostile writer with filesystem control remains outside the supported model.
-- A plan digest proves content consistency, not human consent. The host must enforce the user's approval before a real install call.
-- Supported claim after this round: Linux tested locally. Windows requires the exact-commit CI result. macOS is not claimed.
+The protocol distinguishes process death from power loss. Journals use atomic replacement and fsync where supported, but two directory renames are not one atomic transaction. Recovery uses validated journal and package identity. The supported model still assumes no hostile concurrent writer inside the skills root.
 
-## Maintainer decisions still needed
+## Maintainer decisions remaining
 
-1. Choose a license before any public distribution.
-2. Enable branch protection and required checks on `main`.
-3. Review the final commit and Windows CI evidence.
-4. Say the word before the installer gate changes. The gate does not open on its own.
+1. Review the final commit and both CI jobs.
+2. Supply reviewed artifact facts before any entry becomes installable.
+3. Choose a license before public distribution.
+4. Enable branch protection and required checks on `main`.
+5. Separately approve any installer gate change after final review.

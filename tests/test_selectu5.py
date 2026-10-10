@@ -337,10 +337,10 @@ class TestRecoverableInstall(unittest.TestCase):
             tx = "abc123-" + "a" * 16
             target = os.path.join(d, "xrpl-demo"); backup = os.path.join(d, f"xrpl-demo.bak-{tx}")
             os.makedirs(backup)
-            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("old")
+            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
             rec = os.path.join(d, m.RECOVERY_DIRNAME); os.makedirs(rec)
             with open(os.path.join(rec, tx + ".json"), "w") as fh:
-                json.dump({"tx": tx, "id": "xrpl-demo", "version": "1.0.0", "stage": "active-moved", "backup_name": f"xrpl-demo.bak-{tx}"}, fh)
+                json.dump({"tx": tx, "id": "xrpl-demo", "new_version": "1.0.1", "old_version": "1.0.0", "stage": "old-moved", "backup_name": f"xrpl-demo.bak-{tx}", "commit": "a" * 40, "artifact_sha256": "b" * 64, "old_commit": None, "old_artifact_sha256": None}, fh)
             with m.skills_lock(d):
                 actions = m.recover_transactions(d)
             self.assertTrue(actions)
@@ -535,20 +535,16 @@ class TestRound2RecoveryEvidence(unittest.TestCase):
             root = os.path.join(d, "skills"); os.makedirs(root)
             code = ("import sys, time; sys.path.insert(0, %r); import selectu5; "
                     "cm = selectu5.skills_lock(%r); cm.__enter__(); print('locked', flush=True); time.sleep(30)") % (os.path.join(SKILL, "scripts"), root)
-            proc = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            try:
+            with subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) as proc:
                 self.assertEqual(proc.stdout.readline().strip(), "locked")
                 proc.terminate(); proc.wait(timeout=10)
-            finally:
-                if proc.poll() is None:
-                    proc.kill()
             tx = "def456-" + "b" * 16
             backup_name = f"xrpl-demo.bak-{tx}"
             backup = os.path.join(root, backup_name); os.makedirs(backup)
-            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("old")
+            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
             rec = os.path.join(root, m.RECOVERY_DIRNAME); os.makedirs(rec)
             with open(os.path.join(rec, tx + ".json"), "w") as fh:
-                json.dump({"tx": tx, "id": "xrpl-demo", "version": "1.0.0", "stage": "active-moved", "backup_name": backup_name}, fh)
+                json.dump({"tx": tx, "id": "xrpl-demo", "new_version": "1.0.1", "old_version": "1.0.0", "stage": "old-moved", "backup_name": backup_name, "commit": "a" * 40, "artifact_sha256": "b" * 64, "old_commit": None, "old_artifact_sha256": None}, fh)
             data_case = TestRound2Integration("test_R01_command_path_installs_and_rejects_wrong_digest")
             data = data_case.pkg({"SKILL.md": data_case.MANIFEST})
             reg, e = data_case.installable(data)
@@ -575,3 +571,164 @@ class TestRound2RecoveryEvidence(unittest.TestCase):
                 m._txid = old
             self.assertTrue(os.path.isfile(os.path.join(collision, "keep.txt")))
             self.assertFalse(os.path.exists(os.path.join(collision, "xrpl-demo")))
+
+class TestRound3Audit(unittest.TestCase):
+    def mod(self):
+        sys.path.insert(0, os.path.join(SKILL, "scripts"))
+        import selectu5
+        return selectu5
+
+    def case(self):
+        return TestRound2Integration("test_R01_command_path_installs_and_rejects_wrong_digest")
+
+    def child(self, code):
+        return subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=30)
+
+    def test_R02_actual_process_death_after_each_move(self):
+        m = self.mod(); case = self.case(); import hashlib
+        for exit_after in (1, 2):
+            with tempfile.TemporaryDirectory() as d:
+                v1 = case.pkg({"SKILL.md": case.MANIFEST}); reg, e1 = case.installable(v1)
+                m.install_package(e1, v1, d, "0.14.1")
+                manifest2 = case.MANIFEST.replace("1.0.0", "1.0.1")
+                code = f"""
+import sys, os, io, zipfile, hashlib
+sys.path.insert(0, {os.path.join(SKILL, 'scripts')!r})
+import selectu5
+buf = io.BytesIO()
+with zipfile.ZipFile(buf, 'w') as z: z.writestr('xrpl-demo-abc/SKILL.md', {manifest2!r})
+data = buf.getvalue()
+e = {{'kind':'skill','id':'xrpl-demo','version':'1.0.1','access':'read','core_version':None,'ref':'a'*40,'artifact_sha256':hashlib.sha256(data).hexdigest(),'package_root':'xrpl-demo-abc'}}
+orig = selectu5._rename_dir; n = {{'v':0}}
+def wrap(src, dst):
+    r = orig(src, dst); n['v'] += 1
+    if n['v'] == {exit_after}: os._exit(77)
+    return r
+selectu5._rename_dir = wrap
+selectu5.install_package(e, data, {d!r}, '0.14.1')
+"""
+                r = self.child(code); self.assertEqual(r.returncode, 77, r.stderr)
+                with m.skills_lock(d):
+                    actions = m.recover_transactions(d)
+                active = os.path.join(d, "xrpl-demo", "SKILL.md")
+                with open(active) as fh: text = fh.read()
+                if exit_after == 1:
+                    self.assertIn("version: 1.0.0", text)
+                else:
+                    self.assertIn("version: 1.0.1", text)
+                v3 = case.pkg({"SKILL.md": case.MANIFEST.replace("1.0.0", "1.0.2")})
+                e3 = entry("xrpl-demo", "1.0.2", ref="a" * 40)
+                e3["artifact_sha256"] = hashlib.sha256(v3).hexdigest(); e3["package_root"] = "xrpl-demo-abc"
+                m.install_package(e3, v3, d, "0.14.1")
+                with open(active) as fh: self.assertIn("version: 1.0.2", fh.read())
+
+    def test_R02_recovery_interruption_is_repeatable(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            tx = "beef42-" + "d" * 16; backup_name = f"xrpl-demo.bak-{tx}"
+            backup = os.path.join(d, backup_name); os.makedirs(backup)
+            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
+            rec = os.path.join(d, m.RECOVERY_DIRNAME); os.makedirs(rec)
+            with open(os.path.join(rec, tx + ".json"), "w") as fh:
+                json.dump({"tx": tx, "id": "xrpl-demo", "new_version": "1.0.1", "old_version": "1.0.0", "stage": "old-moved", "backup_name": backup_name, "commit": "a" * 40, "artifact_sha256": "b" * 64, "old_commit": None, "old_artifact_sha256": None}, fh)
+            code = f"""
+import sys, os
+sys.path.insert(0, {os.path.join(SKILL, 'scripts')!r})
+import selectu5
+orig = selectu5._rename_dir
+def wrap(src, dst):
+    r = orig(src, dst); os._exit(77)
+selectu5._rename_dir = wrap
+with selectu5.skills_lock({d!r}): selectu5.recover_transactions({d!r})
+"""
+            r = self.child(code); self.assertEqual(r.returncode, 77, r.stderr)
+            with m.skills_lock(d):
+                m.recover_transactions(d)
+            self.assertTrue(os.path.isfile(os.path.join(d, "xrpl-demo", "SKILL.md")))
+
+    def test_R02_postpublication_journal_failure_rolls_back(self):
+        m = self.mod(); case = self.case(); import hashlib
+        with tempfile.TemporaryDirectory() as d:
+            v1 = case.pkg({"SKILL.md": case.MANIFEST}); reg, e1 = case.installable(v1)
+            m.install_package(e1, v1, d, "0.14.1")
+            v2 = case.pkg({"SKILL.md": case.MANIFEST.replace("1.0.0", "1.0.1")})
+            e2 = entry("xrpl-demo", "1.0.1", ref="a" * 40)
+            e2["artifact_sha256"] = hashlib.sha256(v2).hexdigest(); e2["package_root"] = "xrpl-demo-abc"
+            orig_write = m._write_journal
+            def bad_write(rec_dir, record):
+                if record.get("stage") == "done": raise OSError("injected journal failure")
+                return orig_write(rec_dir, record)
+            m._write_journal = bad_write
+            try:
+                with self.assertRaises(OSError):
+                    m.install_package(e2, v2, d, "0.14.1")
+            finally:
+                m._write_journal = orig_write
+            with open(os.path.join(d, "xrpl-demo", "SKILL.md")) as fh: self.assertIn("version: 1.0.0", fh.read())
+            m.install_package(e2, v2, d, "0.14.1")
+            with open(os.path.join(d, "xrpl-demo", "SKILL.md")) as fh: self.assertIn("version: 1.0.1", fh.read())
+
+    def test_R03_all_journals_validated_before_mutation(self):
+        m = self.mod()
+        with tempfile.TemporaryDirectory() as d:
+            tx = "aaabbb-" + "e" * 16; backup_name = f"xrpl-demo.bak-{tx}"
+            backup = os.path.join(d, backup_name); os.makedirs(backup)
+            with open(os.path.join(backup, "SKILL.md"), "w") as fh: fh.write("---\nname: xrpl-demo\nversion: 1.0.0\naccess: read\n---\n")
+            rec = os.path.join(d, m.RECOVERY_DIRNAME); os.makedirs(rec)
+            with open(os.path.join(rec, tx + ".json"), "w") as fh:
+                json.dump({"tx": tx, "id": "xrpl-demo", "new_version": "1.0.1", "old_version": "1.0.0", "stage": "old-moved", "backup_name": backup_name, "commit": "a" * 40, "artifact_sha256": "b" * 64, "old_commit": None, "old_artifact_sha256": None}, fh)
+            with open(os.path.join(rec, "zzz.json"), "w") as fh: fh.write("{")
+            with m.skills_lock(d):
+                with self.assertRaises(m.RegistryError):
+                    m.recover_transactions(d)
+            self.assertTrue(os.path.isdir(backup)); self.assertFalse(os.path.exists(os.path.join(d, "xrpl-demo")))
+
+    def test_R05_staging_symlink_and_core_overlap_refused(self):
+        m = self.mod(); case = self.case()
+        with tempfile.TemporaryDirectory() as d:
+            outside = os.path.join(d, "outside"); os.makedirs(outside)
+            root = os.path.join(d, "skills"); os.makedirs(root)
+            os.symlink(outside, os.path.join(root, m.STAGING_DIRNAME))
+            data = case.pkg({"SKILL.md": case.MANIFEST}); reg, e = case.installable(data)
+            rc, out, err, _ = case.call_install(m, reg, e, root, data)
+            self.assertEqual(rc, 1); self.assertFalse(os.path.exists(os.path.join(outside, "SKILL.md")))
+        with tempfile.TemporaryDirectory() as d:
+            old = os.environ.get("SELECTU5_CORE_DIR"); os.environ["SELECTU5_CORE_DIR"] = os.path.join(d, "xrpl-demo")
+            try:
+                with self.assertRaises(m.RegistryError):
+                    m.validate_destination(d, "xrpl-demo")
+            finally:
+                if old is None: os.environ.pop("SELECTU5_CORE_DIR", None)
+                else: os.environ["SELECTU5_CORE_DIR"] = old
+
+    def test_R06_raw_zip_and_R10_extract_deadline(self):
+        m = self.mod(); import time
+        buf = io.BytesIO()
+        zi = zipfile.ZipInfo("root/evil"); zi.filename = "root\\evil"; zi.orig_filename = "root\\evil"
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("root/SKILL.md", "x"); z.writestr(zi, "evil")
+        buf.seek(0)
+        with self.assertRaises(m.RegistryError):
+            m.validate_archive(zipfile.ZipFile(buf), "root")
+        good = io.BytesIO()
+        with zipfile.ZipFile(good, "w") as z: z.writestr("root/file.txt", "hello")
+        good.seek(0); zf = zipfile.ZipFile(good)
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(m.RegistryError):
+                m.extract_member(zf, zf.infolist()[0], os.path.join(d, "file.txt"), deadline=time.monotonic() - 1)
+
+    def test_R07_provenance_identity_and_summary(self):
+        m = self.mod(); case = self.case(); import contextlib
+        with tempfile.TemporaryDirectory() as d:
+            pkg_dir = os.path.join(d, "xrpl-demo"); os.makedirs(pkg_dir)
+            with open(os.path.join(pkg_dir, "SKILL.md"), "w") as fh: fh.write(case.MANIFEST)
+            with open(os.path.join(pkg_dir, ".selectu5-meta.json"), "w") as fh:
+                json.dump({"schema": "selectu5-install/1", "id": "xrpl-other", "version": "9.0.0", "commit": "a" * 40, "artifact_sha256": "b" * 64, "pad": "x" * 20000}, fh)
+            data = case.pkg({"SKILL.md": case.MANIFEST}); reg, e = case.installable(data)
+            local = m.local_skills(d)
+            self.assertEqual(local["xrpl-demo"]["provenance"], {"invalid": True})
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                m.cmd_check(reg, local, "test")
+            self.assertIn("provenance difference", buf.getvalue())
+            self.assertNotIn("Everything listed is installed and current", buf.getvalue())

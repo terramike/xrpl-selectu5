@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""xrpl-selectu5 0.2.0 — Selectu5, the XRPL Muse skill app store.
+"""xrpl-selectu5 0.2.2 — Selectu5, the XRPL Muse skill app store.
 
 Companion skill. Read-only toward the core: it reads a curated registry
 and the version frontmatter of local skills. Installs happen only with
@@ -36,9 +36,9 @@ SECRET_NAME = re.compile(r"(seed|secret|\.pem$|\.key$|id_rsa)", re.I)
 
 ID_RE = re.compile(r"^xrpl-[a-z0-9]+(?:-[a-z0-9]+)*$")
 SHOWCASE_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$")
+VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
-CORE_VERSION_RE = re.compile(r"^>=\d+\.\d+\.\d+$")
+CORE_VERSION_RE = re.compile(r"^>=(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 RESERVED_CORE_IDS = {"xrpl", "xrpl-muse", "xrpl-muse-skill"}
 CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 MAX_ENTRIES = 200
@@ -46,6 +46,26 @@ MAX_ENTRIES = 200
 
 class RegistryError(ValueError):
     pass
+
+
+def _load_json_strict(data, limit, label):
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    if len(data) > limit:
+        raise RegistryError(f"{label} passes the {limit}-byte limit")
+    def no_dupes(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                raise RegistryError(f"{label} repeats the key {key!r}")
+            obj[key] = value
+        return obj
+    try:
+        return json.loads(data.decode("utf-8"), object_pairs_hook=no_dupes)
+    except RegistryError:
+        raise
+    except Exception as exc:
+        raise RegistryError(f"{label} is not valid JSON") from exc
 
 
 APPROVED_REPO_PAIRS = {
@@ -83,6 +103,8 @@ def read_limited(src, limit):
                 if time.monotonic() > deadline:
                     raise RegistryError("network deadline passed")
                 chunk = resp.read(65536)
+                if time.monotonic() > deadline:
+                    raise RegistryError("network deadline passed")
                 if not chunk:
                     break
                 total += len(chunk)
@@ -157,7 +179,9 @@ def validate_archive(zf, package_root):
     files, dirs, total = {}, set(), 0
     manifest_count = 0
     for info in infos:
-        original = info.filename
+        original = info.orig_filename
+        if "\x00" in original or CONTROL_RE.search(original):
+            raise RegistryError("archive member name contains a forbidden control character")
         rel = _member_relpath(original)
         if not rel:
             continue
@@ -203,18 +227,24 @@ def validate_archive(zf, package_root):
     return package_root
 
 
-def extract_member(zf, info, dest_path):
-    """Decompress one member with an actual byte counter, never a trust fall."""
+def extract_member(zf, info, dest_path, deadline=None):
+    """Decompress one member with actual byte and time counters."""
     written = 0
     with zf.open(info) as src, open(dest_path, "wb") as out:
         while True:
+            if deadline is not None and time.monotonic() > deadline:
+                raise RegistryError("extraction deadline passed")
             chunk = src.read(65536)
+            if deadline is not None and time.monotonic() > deadline:
+                raise RegistryError("extraction deadline passed")
             if not chunk:
                 break
             written += len(chunk)
             if written > LIMITS["expanded_file"]:
                 raise RegistryError("expanded file passes the per-file limit")
             out.write(chunk)
+    if deadline is not None and time.monotonic() > deadline:
+        raise RegistryError("extraction deadline passed")
     return written
 
 
@@ -367,7 +397,7 @@ def validate_registry(reg):
 
 
 def parse_version(text):
-    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$", str(text or ""))
+    m = VERSION_RE.match(str(text or ""))
     if not m:
         return None
     return (int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) or "")
@@ -421,6 +451,8 @@ def validate_destination(skills_dir, entry_id):
         if root == bad or root.startswith(bad + os.sep):
             raise RegistryError("skills root cannot sit inside the core or credential directory")
     target = os.path.join(root, entry_id)
+    if target == core_dir or target.startswith(core_dir + os.sep) or core_dir.startswith(target + os.sep):
+        raise RegistryError("target overlaps the configured core directory")
     if os.path.dirname(target) != root:
         raise RegistryError("target escapes the skills root")
     if os.path.lexists(target):
@@ -479,18 +511,43 @@ def parse_manifest(text):
     return dict(FIELD.findall(m.group(1))) if m else {}
 
 
-def _read_provenance(path):
+def _manifest_identity(text):
+    """Inventory identity parser: legacy access may be absent, duplicates may not."""
+    m = FRONTMATTER.search(text or "")
+    if not m:
+        return {}
+    fields, dupes = {}, set()
+    for line in m.group(1).splitlines():
+        km = re.match(r"^([a-z_]+):\s*(.*)$", line.strip())
+        if not km:
+            continue
+        key, value = km.group(1), km.group(2).strip().strip("\"'")
+        if key in ("name", "version") and key in fields:
+            dupes.add(key)
+        fields.setdefault(key, value)
+    if dupes:
+        return {"invalid_identity": True}
+    return fields
+
+
+def _read_provenance(path, expected_id=None, expected_version=None):
     meta_path = os.path.join(path, ".selectu5-meta.json")
     if os.path.islink(meta_path) or not os.path.isfile(meta_path):
         return None
     try:
-        with open(meta_path, encoding="utf-8") as fh:
-            meta = json.load(fh)
+        if os.path.getsize(meta_path) > 16384:
+            return {"invalid": True}
+        with open(meta_path, "rb") as fh:
+            meta = _load_json_strict(fh.read(16385), 16384, "provenance record")
     except Exception:
         return {"invalid": True}
     if not isinstance(meta, dict) or meta.get("schema") != "selectu5-install/1":
         return {"invalid": True}
     if not ID_RE.match(str(meta.get("id", ""))) or not VERSION_RE.match(str(meta.get("version", ""))):
+        return {"invalid": True}
+    if expected_id is not None and meta.get("id") != expected_id:
+        return {"invalid": True}
+    if expected_version is not None and meta.get("version") != expected_version:
         return {"invalid": True}
     if not COMMIT_RE.match(str(meta.get("commit", ""))) or not SHA256_RE.match(str(meta.get("artifact_sha256", ""))):
         return {"invalid": True}
@@ -499,8 +556,11 @@ def _read_provenance(path):
 
 def local_skills(skills_dir):
     found = {}
-    if not os.path.isdir(skills_dir):
+    if not os.path.exists(skills_dir):
         return found
+    _root_components(skills_dir)  # raises on any supplied symlink component
+    if not os.path.isdir(skills_dir):
+        raise RegistryError("skills root is not a directory")
     for name in sorted(os.listdir(skills_dir)):
         if not name.startswith("xrpl") or ".bak-" in name or name.startswith("."):
             continue
@@ -512,14 +572,15 @@ def local_skills(skills_dir):
             continue
         try:
             with open(md, encoding="utf-8") as fh:
-                fields = parse_manifest(fh.read(65536))
+                fields = _manifest_identity(fh.read(65536))
         except Exception:
             continue
-        identity_ok = fields.get("name") == name or (name == "xrpl" and fields.get("name") == "xrpl-muse-skill")
+        identity_ok = (not fields.get("invalid_identity")) and (fields.get("name") == name or (name == "xrpl" and fields.get("name") == "xrpl-muse-skill"))
         version_ok = bool(VERSION_RE.match(fields.get("version", "")))
         version = fields.get("version") if identity_ok and version_ok else "unknown"
+        expected_id = fields.get("name") if identity_ok else name
         found[name] = {"version": version, "path": os.path.join(skills_dir, name),
-                       "provenance": _read_provenance(path)}
+                       "provenance": _read_provenance(path, expected_id, version if version_ok else None)}
     for folder, entry_id in {"xrpl": "xrpl-muse-skill"}.items():
         if folder in found and entry_id not in found:
             found[entry_id] = found[folder]
@@ -568,11 +629,27 @@ class LockHeldError(RegistryError):
     pass
 
 
+def _ensure_internal_dir(root, name):
+    path = os.path.join(root, name)
+    if os.path.lexists(path):
+        if os.path.islink(path) or not os.path.isdir(path):
+            raise RegistryError(f"internal path {name} is not a plain directory")
+        return path
+    os.makedirs(path)
+    return path
+
+
+def _check_internal_file(path, label):
+    if os.path.lexists(path) and (os.path.islink(path) or not os.path.isfile(path)):
+        raise RegistryError(f"{label} is not a plain file")
+
+
 @contextlib.contextmanager
 def skills_lock(skills_root):
     """OS process lock. Process death releases it; the file is a rendezvous."""
     os.makedirs(skills_root, exist_ok=True)
     lock_path = os.path.join(skills_root, ".selectu5.lock")
+    _check_internal_file(lock_path, "skills-root lock")
     fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
     locked = False
     try:
@@ -638,14 +715,60 @@ def _write_journal(rec_dir, record):
     return final
 
 
+JOURNAL_MAX_RECORDS = 100
+JOURNAL_MAX_BYTES = 1024 * 1024
+JOURNAL_RECORD_BYTES = 16384
+
+
+def _package_identity(path):
+    """Validated package identity at a path, or None when not identifiable."""
+    if not path or os.path.islink(path) or not os.path.isdir(path):
+        return None
+    md = os.path.join(path, "SKILL.md")
+    if os.path.islink(md) or not os.path.isfile(md):
+        return None
+    try:
+        with open(md, encoding="utf-8") as fh:
+            fields = _manifest_identity(fh.read(65536))
+    except Exception:
+        return None
+    if fields.get("invalid_identity") or not fields.get("name") or not VERSION_RE.match(fields.get("version", "")):
+        return None
+    meta = _read_provenance(path, fields["name"], fields["version"])
+    return {"id": fields["name"], "version": fields["version"], "provenance": meta}
+
+
+def _identity_is(identity, entry_id, version):
+    return bool(identity and identity.get("id") == entry_id and identity.get("version") == version)
+
+
+def _is_old_identity(identity, tx):
+    if not _identity_is(identity, tx.get("id"), tx.get("old_version")):
+        return False
+    expected = tx.get("old_artifact_sha256")
+    if expected:
+        meta = identity.get("provenance")
+        return bool(meta and not meta.get("invalid") and meta.get("artifact_sha256") == expected and meta.get("commit") == tx.get("old_commit"))
+    return True
+
+
+def _is_new_identity(identity, tx):
+    if not _identity_is(identity, tx.get("id"), tx.get("new_version")):
+        return False
+    meta = identity.get("provenance")
+    return bool(meta and not meta.get("invalid") and meta.get("artifact_sha256") == tx.get("artifact_sha256") and meta.get("commit") == tx.get("commit"))
+
+
 def _validate_journal(rec_dir, name, root):
     path = os.path.join(rec_dir, name)
     if os.path.islink(path) or not os.path.isfile(path):
         raise RegistryError(f"recovery record {name} is not a plain file")
+    if os.path.getsize(path) > JOURNAL_RECORD_BYTES:
+        raise RegistryError(f"recovery record {name} passes the size limit; no mutation was made")
     try:
-        with open(path, encoding="utf-8") as fh:
-            tx = json.load(fh)
-    except Exception as exc:
+        with open(path, "rb") as fh:
+            tx = _load_json_strict(fh.read(JOURNAL_RECORD_BYTES + 1), JOURNAL_RECORD_BYTES, f"recovery record {name}")
+    except RegistryError as exc:
         raise RegistryError(f"recovery record {name} is corrupt; no mutation was made") from exc
     if not isinstance(tx, dict):
         raise RegistryError("recovery record is not an object; no mutation was made")
@@ -655,12 +778,22 @@ def _validate_journal(rec_dir, name, root):
     entry_id = tx.get("id")
     if not isinstance(entry_id, str) or not ID_RE.match(entry_id) or entry_id in RESERVED_CORE_IDS:
         raise RegistryError("recovery record has an invalid skill id")
-    if tx.get("stage") not in ("staging", "validated", "active-moved", "done", "recovered"):
+    if tx.get("stage") not in ("prepared", "old-moved", "published", "done", "recovered"):
         raise RegistryError("recovery record has an invalid stage")
-    if not isinstance(tx.get("version"), str) or not VERSION_RE.match(tx["version"]):
-        raise RegistryError("recovery record has an invalid version")
+    if not isinstance(tx.get("new_version"), str) or not VERSION_RE.match(tx["new_version"]):
+        raise RegistryError("recovery record has an invalid new version")
+    old_version = tx.get("old_version")
+    if old_version is not None and (not isinstance(old_version, str) or not VERSION_RE.match(old_version)):
+        raise RegistryError("recovery record has an invalid old version")
+    if not COMMIT_RE.match(str(tx.get("commit", ""))) or not SHA256_RE.match(str(tx.get("artifact_sha256", ""))):
+        raise RegistryError("recovery record has invalid new-content identity")
+    for key in ("old_commit", "old_artifact_sha256"):
+        if tx.get(key) is not None and not (COMMIT_RE.match(str(tx[key])) if key == "old_commit" else SHA256_RE.match(str(tx[key]))):
+            raise RegistryError("recovery record has invalid old-content identity")
     backup_name = tx.get("backup_name")
-    if backup_name is not None and backup_name != f"{entry_id}.bak-{txid}":
+    if old_version is None and backup_name is not None:
+        raise RegistryError("recovery record names a backup without old content")
+    if old_version is not None and backup_name != f"{entry_id}.bak-{txid}":
         raise RegistryError("recovery record has an invalid backup name")
     target = validate_destination(root, entry_id)
     backup = os.path.join(root, backup_name) if backup_name else None
@@ -676,30 +809,76 @@ def _rename_dir(src, dst):
     os.rename(src, dst)
 
 
+def _cleanup_staged(root, txid):
+    staging_root = os.path.join(root, STAGING_DIRNAME)
+    if os.path.lexists(staging_root):
+        if os.path.islink(staging_root) or not os.path.isdir(staging_root):
+            raise RegistryError("staging path is not a plain directory")
+        staged = os.path.join(staging_root, txid)
+        if os.path.lexists(staged):
+            if os.path.islink(staged) or not os.path.isdir(staged):
+                raise RegistryError("staged path is not a plain directory")
+            shutil.rmtree(staged)
+
+
 def recover_transactions(skills_root):
-    """Roll back recorded updates. Call only while holding skills_lock()."""
-    root = validate_destination(skills_root, "xrpl-selectu5").rsplit(os.sep, 1)[0]
+    """Resolve recorded updates. Call only while holding skills_lock()."""
+    root = os.path.dirname(validate_destination(skills_root, "xrpl-selectu5"))
     actions = []
     rec_dir = os.path.join(root, RECOVERY_DIRNAME)
     if not os.path.isdir(rec_dir):
         return actions
     if os.path.islink(rec_dir):
         raise RegistryError("recovery directory is a symlink")
-    for name in sorted(os.listdir(rec_dir)):
-        if not name.endswith(".json"):
-            continue
-        tx, target, backup = _validate_journal(rec_dir, name, root)
+    names = [n for n in sorted(os.listdir(rec_dir)) if n.endswith(".json") and not n.startswith(".")]
+    if len(names) > JOURNAL_MAX_RECORDS:
+        raise RegistryError("too many pending recovery records; no mutation was made")
+    total_bytes = 0
+    records = []
+    for name in names:  # validate the whole pending set before any mutation
+        path = os.path.join(rec_dir, name)
+        if os.path.isfile(path) and not os.path.islink(path):
+            total_bytes += os.path.getsize(path)
+            if total_bytes > JOURNAL_MAX_BYTES:
+                raise RegistryError("recovery records pass the total size limit; no mutation was made")
+        records.append(_validate_journal(rec_dir, name, root))
+    for tx, target, backup in records:
         if tx["stage"] in ("done", "recovered"):
             continue
-        if tx["stage"] == "active-moved":
-            if os.path.isdir(target):
-                raise RegistryError(f"recovery state for {tx['id']} is ambiguous; no mutation was made")
-            if not backup or not os.path.isdir(backup):
-                raise RegistryError(f"recovery backup for {tx['id']} is missing; no mutation was made")
-            _rename_dir(backup, target)
-            actions.append(f"restored {tx['id']} from its update backup")
-        tx["stage"] = "recovered"
-        _write_journal(rec_dir, tx)
+        active = _package_identity(target) if os.path.lexists(target) else None
+        backed = _package_identity(backup) if backup and os.path.lexists(backup) else None
+        stage = tx["stage"]
+        try:
+            if _is_new_identity(active, tx):
+                tx["stage"] = "done"
+                _write_journal(rec_dir, tx)
+                actions.append(f"recognized completed {tx['id']} {tx['new_version']}")
+                continue
+            if stage in ("prepared", "old-moved", "published"):
+                if _is_old_identity(active, tx):
+                    tx["stage"] = "recovered"
+                    _write_journal(rec_dir, tx)
+                    _cleanup_staged(root, tx["tx"])
+                    actions.append(f"kept active {tx['id']} {tx['old_version']}")
+                    continue
+                if not os.path.lexists(target) and _is_old_identity(backed, tx):
+                    _rename_dir(backup, target)
+                    actions.append(f"restored {tx['id']} {tx['old_version']} from its update backup")
+                    tx["stage"] = "recovered"
+                    _write_journal(rec_dir, tx)
+                    _cleanup_staged(root, tx["tx"])
+                    continue
+                if not os.path.lexists(target) and tx.get("old_version") is None:
+                    tx["stage"] = "recovered"
+                    _write_journal(rec_dir, tx)
+                    _cleanup_staged(root, tx["tx"])
+                    actions.append(f"cleared incomplete new install {tx['id']}")
+                    continue
+            raise RegistryError(f"recovery state for {tx['id']} is ambiguous; no recovery action was taken for that record")
+        except RegistryError:
+            if actions:
+                raise RegistryError("recovery stopped after completed actions: " + "; ".join(actions))
+            raise
     return actions
 
 
@@ -717,17 +896,24 @@ def install_package(e, data, skills_root, core_version_text):
     with skills_lock(root):
         recovered = recover_transactions(root)
         txid = _txid()
-        rec_dir = os.path.join(root, RECOVERY_DIRNAME)
-        staging_root = os.path.join(root, STAGING_DIRNAME)
+        rec_dir = _ensure_internal_dir(root, RECOVERY_DIRNAME)
+        staging_root = _ensure_internal_dir(root, STAGING_DIRNAME)
         staged = os.path.join(staging_root, txid)
         backup_name = f"{e['id']}.bak-{txid}"
         backup = os.path.join(root, backup_name)
-        record = {"tx": txid, "id": e["id"], "version": e["version"], "stage": "staging",
-                  "backup_name": None, "commit": e.get("ref"), "artifact_sha256": e.get("artifact_sha256")}
+        old_identity = _package_identity(target) if os.path.lexists(target) else None
+        if os.path.lexists(target) and not _is_old_identity(old_identity, {"id": e["id"], "old_version": old_identity.get("version") if old_identity else None, "old_commit": None, "old_artifact_sha256": None}):
+            raise RegistryError("active package identity is unknown; installation is refused")
+        old_meta = old_identity.get("provenance") if old_identity else None
+        record = {"tx": txid, "id": e["id"], "new_version": e["version"],
+                  "old_version": old_identity.get("version") if old_identity else None,
+                  "stage": "prepared", "backup_name": backup_name if old_identity else None,
+                  "commit": e.get("ref"), "artifact_sha256": e.get("artifact_sha256"),
+                  "old_commit": old_meta.get("commit") if old_meta and not old_meta.get("invalid") else None,
+                  "old_artifact_sha256": old_meta.get("artifact_sha256") if old_meta and not old_meta.get("invalid") else None}
         moved_active = False
+        published = False
         try:
-            os.makedirs(rec_dir, exist_ok=True)
-            os.makedirs(staging_root, exist_ok=True)
             os.makedirs(staged, exist_ok=False)
             _write_journal(rec_dir, record)
             deadline = time.monotonic() + 120
@@ -740,15 +926,17 @@ def install_package(e, data, skills_root, core_version_text):
                         raise RegistryError("extraction deadline passed")
                     if info.is_dir():
                         continue
-                    rel = _member_relpath(info.filename)[len(root_prefix):]
+                    rel = _member_relpath(info.orig_filename)[len(root_prefix):]
                     dest = os.path.join(staged, rel)
                     os.makedirs(os.path.dirname(dest), exist_ok=True)
-                    total += extract_member(zf, info, dest)
+                    total += extract_member(zf, info, dest, deadline)
                     if total > LIMITS["expanded_total"]:
                         raise RegistryError("expanded package passes the total limit")
                     mode = (info.external_attr >> 16) & 0o777
                     if stat.S_ISREG((info.external_attr >> 16) or 0o100644) and mode & 0o111:
                         os.chmod(dest, 0o755)
+            if time.monotonic() > deadline:
+                raise RegistryError("extraction deadline passed")
             with open(os.path.join(staged, "SKILL.md"), encoding="utf-8") as fh:
                 manifest = parse_manifest_strict(fh.read(LIMITS["manifest_bytes"] + 1))
             if manifest["name"] != e["id"] or manifest["version"] != e["version"] or manifest["access"] != e["access"]:
@@ -759,29 +947,45 @@ def install_package(e, data, skills_root, core_version_text):
             with open(os.path.join(staged, ".selectu5-meta.json"), "w", encoding="utf-8") as fh:
                 json.dump(meta, fh, indent=2, sort_keys=True)
             target = validate_destination(root, e["id"])
+            current_identity = _package_identity(target) if os.path.lexists(target) else None
+            if old_identity and not _is_old_identity(current_identity, record):
+                raise RegistryError("active package changed during staging; installation is refused")
+            if not old_identity and os.path.lexists(target):
+                raise RegistryError("active package appeared during staging; installation is refused")
             if os.path.lexists(backup):
                 raise RegistryError("backup destination already exists")
-            record["stage"] = "validated"
-            if os.path.isdir(target):
-                record["backup_name"] = backup_name
-            _write_journal(rec_dir, record)
             try:
-                if os.path.isdir(target):
+                if old_identity:
+                    record["stage"] = "old-moved"
+                    _write_journal(rec_dir, record)
                     _rename_dir(target, backup)
                     moved_active = True
-                    record["stage"] = "active-moved"
-                    _write_journal(rec_dir, record)
+                record["stage"] = "published"
+                _write_journal(rec_dir, record)
                 _rename_dir(staged, target)
+                published = True
             except Exception:
                 if moved_active and not os.path.lexists(target) and os.path.isdir(backup):
                     _rename_dir(backup, target)
+                    record["stage"] = "recovered"
+                    _write_journal(rec_dir, record)
                 raise
-            with open(os.path.join(target, "SKILL.md"), encoding="utf-8") as fh:
-                placed = parse_manifest_strict(fh.read(LIMITS["manifest_bytes"] + 1))
-            if placed["name"] != e["id"] or placed["version"] != e["version"]:
-                raise RegistryError("installed package failed verification")
-            record["stage"] = "done"
-            _write_journal(rec_dir, record)
+            try:
+                placed_identity = _package_identity(target)
+                if not _is_new_identity(placed_identity, record):
+                    raise RegistryError("installed package failed identity verification")
+                record["stage"] = "done"
+                _write_journal(rec_dir, record)
+            except Exception:
+                # Rollback protocol for post-publication failures.
+                failed_dir = os.path.join(staging_root, txid + "-failed")
+                if _is_new_identity(_package_identity(target), record) and not os.path.lexists(failed_dir):
+                    _rename_dir(target, failed_dir)
+                if moved_active and not os.path.lexists(target) and os.path.isdir(backup):
+                    _rename_dir(backup, target)
+                record["stage"] = "recovered"
+                _write_journal(rec_dir, record)
+                raise
             return {"installed": target, "backup": backup if moved_active else None, "recovered": recovered}
         finally:
             if os.path.isdir(staged):
@@ -887,7 +1091,7 @@ def cmd_check(reg, local, source):
         print("\ncurrent:")
         for e in current:
             print(f"  {e['id']} {e['version']}")
-    if not updates and not missing and not newer and not unknown:
+    if not updates and not missing and not newer and not unknown and not provenance:
         print("\nEverything listed is installed and current.")
     print("\nAn update notice is information, not an install.")
     return 0
@@ -1016,11 +1220,19 @@ def main():
         return 0
     skills_dir = os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR)
     if args.cmd == "installed":
-        return cmd_installed(local_skills(skills_dir), "local inventory (no registry used)")
+        try:
+            return cmd_installed(local_skills(skills_dir), "local inventory (no registry used)")
+        except RegistryError as exc:
+            print(f"xrpl-selectu5 {VERSION}: {exc}", file=sys.stderr)
+            return 1
     reg, source = load_registry(offline=args.offline)
     if reg is None:
         return 1
-    local = local_skills(skills_dir)
+    try:
+        local = local_skills(skills_dir)
+    except RegistryError as exc:
+        print(f"xrpl-selectu5 {VERSION}: {exc}", file=sys.stderr)
+        return 1
     if args.cmd == "list":
         return cmd_list(reg, local, source)
     if args.cmd == "show":
