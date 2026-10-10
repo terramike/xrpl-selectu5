@@ -18,21 +18,23 @@ Read `REPAIR-REPORT.md` for repairs N01–N06 and the remaining release limitati
 
 ## Remaining work
 
-1. Mike completes the remaining distribution decisions (`docs/production/DISTRIBUTION-DECISION.md`).
+1. Review public repository contents and history. Mike selected public source with fixed release assets and authorized the visibility change.
 2. Prepare the exact pilot asset (S, D, package root) and the later catalog commit C for Mike's review.
 3. Run actual artifact qualification (retrieval, fresh install, no-op, update, recovery, concurrency) on Linux and Windows.
 4. Qualify host consent and one catalog entry (Stage 4).
 5. Prepare the final production candidate and release packet (Stage 5).
 
 Private repository access does not establish artifact access through the current installer.
-No private-token delivery is planned. Publication, visibility change, and installer enablement remain Mike's separate decisions.
+No private-token delivery is planned. Mike authorized public repository visibility on 2026-10-10.
+The connected GitHub tools cannot change visibility. A repository administrator must perform that step after the public-content review.
+Exact release asset publication and installer enablement still need review.
 
 ## Decisions
 
 Mike selected Apache-2.0 on 2026-10-10. The repository and package inventory include `LICENSE` and `NOTICE`.
 Repository controls need current verification and an exact configuration proposal.
-Installer enablement, public release, and visibility changes remain separate decisions.
-This handoff does not authorize them.
+Mike selected public source with fixed release assets from `terramike/xrpl-selectu5` on 2026-10-10.
+Installer enablement and exact release asset publication remain pending.
 
 ## Continuity record
 
@@ -40,8 +42,8 @@ This handoff does not authorize them.
 - Historical qualification evidence stays historical: `docs/production/ACCEPTANCE.md` and `docs/production/evidence.json` describe the PR #2 candidate, not the current installer code.
 - Historical artifact S: `7db6c62951b552d15fa13cc09e1f083f073ca92a`; digest D and catalog C remain unqualified.
 - Current branch: `codex/selectu5-fixed-asset-transport`, PR #3. Initial head `925c8e3097d6` passed all four CI jobs (73 tests/platform). Audit fixes followed before merge: source symlink/reparse refusal with containment, clean-export rebuild evidence, malformed asset-URL rejection, skill-only distribution, duplicate/colliding inventory refusal, and finished-ZIP validation. Final head and CI are recorded in PR #3.
-- Remaining blockers: remaining distribution decisions, actual artifact qualification, repository controls verification, final release review.
-- Next action: Mike reviews the fixed-asset PR and records the distribution decision; then prepare the exact pilot asset for qualification.
+- Remaining blockers: public-content review and package approval, actual artifact qualification, repository controls verification, final release review.
+- Next action: Review the public repository contents and history, then prepare the exact pilot asset for qualification.
 
-Publication, visibility, and installer enablement remain separate decisions.
+Public repository visibility is authorized. Exact asset publication and installer enablement remain pending.
 Update this record before another pause. Preserve the tested identities and unresolved blockers.

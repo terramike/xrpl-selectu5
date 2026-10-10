@@ -1,18 +1,20 @@
 # Distribution and license decision record
 
-Status: Mike selected Apache-2.0 on 2026-10-10. Other distribution decisions remain pending.
-Publication, visibility changes, and installer enablement require separate approval.
+Status: Mike selected public source distribution with fixed release assets on 2026-10-10.
+Mike also selected Apache-2.0 and authorized making this repository public.
+Repository visibility has not yet changed. Review public repository contents and history before the operator changes visibility.
+Approval of the exact pilot asset and installer enablement remains pending.
 
 ## Decision required
 
 | Field | Mike's decision |
 |---|---|
-| Distribution model | _Select one option below_ |
-| Distribution repository | _Name the repository that will serve the uploaded ZIP assets_ |
+| Distribution model | Public source repository with fixed uploaded ZIP release assets. Selected by Mike on 2026-10-10. |
+| Distribution repository | `terramike/xrpl-selectu5` |
 | Permitted package contents | _Approve or amend `docs/production/PACKAGE-INVENTORY.md`_ |
 | License | Apache-2.0. Mike selected this license on 2026-10-10. See `LICENSE`. |
-| Intended audience | _Team only / named pilot users / public_ |
-| Publication authority | _Who may publish a release asset and catalog commit_ |
+| Intended audience | Public. Start installation qualification with a controlled pilot. |
+| Publication authority | Mike approves the exact pilot asset before publication. Visibility change is authorized. |
 | Release approver | Mike Mingucci (recorded from the production plan) |
 | Maintainer | _Name the maintainer for asset/catalog corrections_ |
 
@@ -43,4 +45,30 @@ The following table preserves the options considered.
 
 ## Effect of the decision
 
-After Mike records the decision, Codex can prepare the exact pilot asset (S, D, package root) and a later catalog commit C for review. Uploading any asset, changing any repository visibility, or enabling the installer still needs Mike's approval of that concrete action.
+Prepare the exact pilot asset (S, D, package root) and a later catalog commit C for review.
+Complete the repository contents and history review before the authorized visibility change.
+The connected GitHub tools cannot change repository visibility. A repository administrator must perform that step.
+Approve the exact release asset before publishing it. Keep `INSTALL_ENABLED = False` until qualification and enablement review pass.
+
+## How fixed release assets work
+
+1. Select an exact source commit S.
+2. Build a ZIP from the approved file inventory.
+3. Include `LICENSE` and `NOTICE`.
+4. Calculate the complete ZIP SHA-256 fingerprint D.
+5. Review the package contents and build evidence.
+6. Upload the ZIP to a draft GitHub release.
+7. Publish the approved pilot release with immutable releases enabled where available.
+8. Record its exact URL, S, D, and package root in the reviewed catalog C.
+9. Download and verify D before any extraction.
+10. Publish a new version for changed package bytes.
+
+The uploaded ZIP is the release asset. GitHub's automatic source ZIP is a different download.
+GitHub can regenerate source archives with different compression bytes.
+An uploaded immutable release asset preserves the published package identity.
+Its fingerprint verifies bytes. It does not replace package review or human installation approval.
+
+References:
+
+- https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
+- https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
