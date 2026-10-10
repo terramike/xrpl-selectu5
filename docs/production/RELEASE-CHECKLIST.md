@@ -6,29 +6,29 @@ Record `blocked` or `not_run` when a check cannot finish.
 
 ## Catalog-only candidate
 
-- [ ] Record candidate commit, package version, Python version, and supported root types.
-- [ ] Confirm matching code, manifest, and self catalog versions.
-- [ ] Confirm that shipped code keeps the installer gate disabled.
-- [ ] Confirm all unqualified skill entries remain list-only.
-- [ ] Attach successful Linux and Windows CI for the candidate.
-- [ ] Check offline listing, inventory, permissions cards, and update notices.
-- [ ] Check unavailable catalog fallback and invalid catalog refusal.
-- [ ] Check that installation refusal fetches no artifact.
-- [ ] Record a selected license, or mark public distribution blocked.
-- [ ] Record branch controls and required checks, or mark configuration pending.
-- [ ] Prepare changelog, limitations, and release notes.
+- [x] Record candidate commit, package version, Python version, and supported root types. Evidence: `docs/production/ACCEPTANCE.md` (S `7db6c62951b552d15fa13cc09e1f083f073ca92a`, 0.2.3, Python 3.12, local Linux/Windows roots; UNC excluded).
+- [x] Confirm matching code, manifest, and self catalog versions. Evidence: harness source inspection pass.
+- [x] Confirm that shipped code keeps the installer gate disabled. Evidence: `INSTALL_ENABLED = False`.
+- [x] Confirm all unqualified skill entries remain list-only. Evidence: harness list-only pass.
+- [ ] Attach successful Linux and Windows CI for the candidate. Status: not_run — Actions not readable with current token (HTTP 403); confirm on PR head.
+- [x] Check offline listing, inventory, permissions cards, and update notices. Evidence: repository suite + local CLI checks.
+- [x] Check unavailable catalog fallback and invalid catalog refusal. Evidence: repository suite.
+- [x] Check that installation refusal fetches no artifact. Evidence: repository suite disabled-gate tests.
+- [ ] Record a selected license, or mark public distribution blocked. Status: blocked — Mike must select license/scope.
+- [ ] Record branch controls and required checks, or mark configuration pending. Status: blocked — current/proposed recorded in ACCEPTANCE; protection unavailable/read-only with current plan/token.
+- [x] Prepare changelog, limitations, and release notes. Evidence: `CHANGELOG.md`, `docs/production/RELEASE-NOTES-CATALOG-ONLY.md`.
 
 ## Artifact identity and transport
 
-- [ ] Record approved owner/repository and source commit S.
-- [ ] Record package version, access, core requirement, and reviewed permissions.
-- [ ] Record exact URL and observed redirects from the production fetch path.
+- [x] Record approved owner/repository and source commit S. Evidence: ACCEPTANCE Stage 2.
+- [x] Record package version, access, core requirement, and reviewed permissions. Evidence: ACCEPTANCE Stage 2.
+- [ ] Record exact URL and observed redirects from the production fetch path. Status: blocked — URL recorded; production fetch returned HTTP 404 before redirect/archive qualification.
 - [ ] Preserve the exact downloaded ZIP and its SHA-256 digest D.
 - [ ] Record archive size and package root.
-- [ ] Validate archive structure and manifest identity.
-- [ ] Inspect package content and dependencies without executing installed code.
+- [ ] Validate archive structure and manifest identity. Status: blocked for downloaded artifact; source manifest inspected only.
+- [x] Inspect package content and dependencies without executing installed code. Evidence: source inspection at S (no credential filenames/executables; stdlib only).
 - [ ] Confirm a second retrieval produces D, or report unstable bytes.
-- [ ] Confirm current transport can retrieve the artifact without new credential handling.
+- [ ] Confirm current transport can retrieve the artifact without new credential handling. Status: blocked — private repo artifact returns HTTP 404 to production fetcher.
 - [ ] Record subsequent catalog commit C separately from S.
 - [ ] Confirm the catalog records S, D, and the correct package root.
 
@@ -37,10 +37,10 @@ A transport blocker prevents installer release. It does not prevent a catalog-on
 
 ## Isolated qualification
 
-- [ ] Record disposable roots and all function overrides.
-- [ ] Test actual fresh installation with a canonical plan and exact version.
+- [x] Record disposable roots and all function overrides. Evidence: `scripts/qualify.py` and harness output.
+- [ ] Test actual fresh installation with a canonical plan and exact version. Status: blocked — synthetic fresh install passed; actual artifact transport blocked.
 - [ ] Test matching-provenance no-op and differing-provenance refusal.
-- [ ] Test actual update between two qualified versions, or mark it incomplete.
+- [ ] Test actual update between two qualified versions, or mark it incomplete. Status: incomplete — synthetic update passed only.
 - [ ] Test backup preservation and interrupted self-update.
 - [ ] Test process death before and after each directory move.
 - [ ] Test interrupted recovery, repeat recovery, and a subsequent update.
@@ -52,23 +52,23 @@ A transport blocker prevents installer release. It does not prevent a catalog-on
 - [ ] Test 150 transactions and restart recovery with bounded terminal history.
 - [ ] Test pending journal limits and legacy terminal journal migration.
 - [ ] Test actual slow-body and delayed-header transport deadlines.
-- [ ] Confirm dummy core and credential sentinel hashes remain unchanged.
+- [x] Confirm dummy core and credential sentinel hashes remain unchanged. Evidence: harness sentinel check pass.
 - [ ] Confirm core inventory reads only public manifests.
-- [ ] Qualify native UNC roots, or exclude them from production support.
+- [x] Qualify native UNC roots, or exclude them from production support. Evidence: UNC excluded in release notes/acceptance until native pilot.
 
 Synthetic checks cannot satisfy an actual artifact checkbox.
 The test override does not establish host consent or production authorization.
 
 ## Operator readiness
 
-- [ ] Document ambiguous recovery and preservation of active content, journals, and backups.
-- [ ] Document backup retention and review before manual removal.
-- [ ] Document catalog withdrawal without deletion of installed content.
-- [ ] Document security reporting and version withdrawal procedures.
-- [ ] Prepare exact release, catalog, visibility, and gate actions with separate review points.
-- [ ] Prepare a return path for each proposed production action.
-- [ ] Record remaining permissions and decisions with their responsible actor.
-- [ ] Complete `ACCEPTANCE.md` and `evidence.json` without invented results.
+- [x] Document ambiguous recovery and preservation of active content, journals, and backups. Evidence: ACCEPTANCE operator readiness.
+- [x] Document backup retention and review before manual removal. Evidence: ACCEPTANCE operator readiness.
+- [x] Document catalog withdrawal without deletion of installed content. Evidence: ACCEPTANCE operator readiness.
+- [x] Document security reporting and version withdrawal procedures. Evidence: ACCEPTANCE operator readiness.
+- [x] Prepare exact release, catalog, visibility, and gate actions with separate review points. Evidence: ACCEPTANCE proposed operator actions.
+- [x] Prepare a return path for each proposed production action. Evidence: ACCEPTANCE proposed operator actions.
+- [x] Record remaining permissions and decisions with their responsible actor. Evidence: ACCEPTANCE remaining decisions and checklist review table.
+- [x] Complete `ACCEPTANCE.md` and `evidence.json` without invented results. Evidence: this checklist, `docs/production/ACCEPTANCE.md`, `docs/production/evidence.json`.
 
 ## Review decisions
 

@@ -1,0 +1,283 @@
+{
+  "artifact": {
+    "access": "read",
+    "archive_bytes": null,
+    "archive_path": null,
+    "catalog_commit_C": null,
+    "core_requirement": ">=0.14.1",
+    "id": "xrpl-selectu5",
+    "manifest_identity": "Source-inspected SKILL.md at S: xrpl-selectu5 0.2.3; downloaded artifact manifest not qualified.",
+    "observed_redirect_urls": [],
+    "package_root": null,
+    "private_authentication_required": true,
+    "production_fetcher_used": "selectu5.fetch_distribution",
+    "repository": "terramike/xrpl-selectu5",
+    "request_url": "https://github.com/terramike/xrpl-selectu5/archive/7db6c62951b552d15fa13cc09e1f083f073ca92a.zip",
+    "reviewed_permissions": "Catalog browsing/inventory only for catalog-only candidate; installer permissions card reviewed in SKILL.md/SPEC.md.",
+    "second_fetch_sha256": null,
+    "sha256_D": null,
+    "source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+    "status": "blocked",
+    "version": "0.2.3"
+  },
+  "blockers": [
+    {
+      "id": "transport-private-artifact",
+      "severity": "release_blocker_for_installer",
+      "statement": "Production fetcher cannot retrieve the private Selectu5 artifact (HTTP 404); no authenticated private-artifact transport is implemented."
+    },
+    {
+      "id": "ci-exact-commit",
+      "severity": "evidence_pending",
+      "statement": "Linux/Windows CI for the final qualification PR head must be confirmed outside this token."
+    },
+    {
+      "id": "license-and-controls",
+      "severity": "decision_pending",
+      "statement": "License selection and repository-control configuration remain Mike/maintainer decisions."
+    }
+  ],
+  "candidate": {
+    "branch": "codex/selectu5-production-qualification",
+    "commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+    "install_enabled": false,
+    "license_decision": null,
+    "repository_controls": {
+      "current": "Private repo; branch protection read returned HTTP 403 (GitHub Pro/public required); Actions runs read returned HTTP 403 (token permission).",
+      "proposed": "Protect main; require linux and windows checks; require 1 PR approval; dismiss stale approvals; require conversation resolution; block force pushes/deletion.",
+      "status": "blocked"
+    },
+    "supported_platforms_and_root_types": [
+      "Linux local filesystem roots (Python 3.12)",
+      "Windows local filesystem roots pending exact-commit CI",
+      "UNC roots excluded until native pilot passes"
+    ],
+    "version": "0.2.3"
+  },
+  "checks": [
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "source_inspection",
+      "name": "source versions and gate",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": "code=0.2.3 manifest=0.2.3 catalog=0.2.3 install_enabled=False",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": []
+    },
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "source_inspection",
+      "name": "unqualified entries list-only",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": "xrpl-view-export, xrpl-community-shows, xrpl-selectu5",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": []
+    },
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": "python3 -m unittest discover -s tests",
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": 0,
+      "failed": null,
+      "kind": "synthetic",
+      "name": "repository test suite",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": "......s.......................................................\n----------------------------------------------------------------------\nRan 62 tests in 10.726s\n\nOK (skipped=1)",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness"
+      ]
+    },
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "synthetic",
+      "name": "synthetic fresh install via cmd_install",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": "ns\": \"Never.\"\n  },\n  \"repo\": \"https://github.com/terramike/xrpl-demo\",\n  \"version\": \"1.0.0\"\n}\nplan digest (sha256): 07691037f550b10238113caf37618021f433eb25b0bc5508343d1190c986e211\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.0 -> /tmp/selectu5-qualify-mwa8d4o_/skills/xrpl-demo\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run.",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness"
+      ]
+    },
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "synthetic",
+      "name": "synthetic matching-provenance no-op",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": "56): 07691037f550b10238113caf37618021f433eb25b0bc5508343d1190c986e211\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-demo 1.0.0 is already installed with matching provenance. Nothing changed.",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness"
+      ]
+    },
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "synthetic",
+      "name": "synthetic update with backup",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": "sha256): d56098e1f0623c22d2997c7477af1d7ac83c8ee2d00ac65ac58aa4065a53d12e\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.1 -> /tmp/selectu5-qualify-mwa8d4o_/skills/xrpl-demo\nprevious version kept at: /tmp/selectu5-qualify-mwa8d4o_/skills/xrpl-demo.bak-1a1248260b4-059e53e17f2daa4f\nxrpl-selectu5 0.2.3: install complete. The new skill shows its own version on its next run.",
+      "sentinels": [],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness"
+      ]
+    },
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "synthetic",
+      "name": "dummy core and credential sentinels unchanged",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": null,
+      "sentinels": [
+        {
+          "after": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab",
+          "before": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab",
+          "path": "SKILL.md"
+        },
+        {
+          "after": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+          "before": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+          "path": "credential-sentinel.txt"
+        }
+      ],
+      "skipped": null,
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness"
+      ]
+    },
+    {
+      "candidate_commit": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "ci_url": null,
+      "command": null,
+      "evidence_path": "docs/production/ACCEPTANCE.md",
+      "exit_code": null,
+      "failed": null,
+      "kind": "actual_artifact",
+      "name": "actual production fetch",
+      "passed": null,
+      "platform": "Linux",
+      "python_version": "3.12",
+      "reason": "OSError: HTTP Error 404: Not Found",
+      "sentinels": [],
+      "skipped": null,
+      "status": "blocked",
+      "test_overrides": []
+    },
+    {
+      "candidate_commit": null,
+      "ci_url": null,
+      "command": "GitHub Actions tests workflow",
+      "evidence_path": null,
+      "exit_code": null,
+      "failed": null,
+      "kind": "live_operation",
+      "name": "exact-commit Linux CI",
+      "passed": null,
+      "platform": "Linux CI",
+      "python_version": "3.12",
+      "reason": "Actions runs are not readable with the current token (HTTP 403); confirm on the qualification PR head before merge.",
+      "sentinels": [],
+      "skipped": null,
+      "status": "not_run",
+      "test_overrides": []
+    },
+    {
+      "candidate_commit": null,
+      "ci_url": null,
+      "command": "GitHub Actions tests workflow",
+      "evidence_path": null,
+      "exit_code": null,
+      "failed": null,
+      "kind": "live_operation",
+      "name": "exact-commit Windows CI",
+      "passed": null,
+      "platform": "Windows CI",
+      "python_version": "3.12",
+      "reason": "Actions runs are not readable with the current token (HTTP 403); confirm on the qualification PR head before merge.",
+      "sentinels": [],
+      "skipped": null,
+      "status": "not_run",
+      "test_overrides": []
+    }
+  ],
+  "created_at_utc": "2026-10-10T06:32:05.561452Z",
+  "known_limits": [
+    "Actual update qualification is synthetic until two production-transport artifacts exist.",
+    "Process interruption evidence does not prove power-loss durability.",
+    "UNC roots are excluded until a native UNC pilot passes.",
+    "Repository controls could not be verified through the current token/plan.",
+    "Exact-commit CI must be confirmed on the PR head."
+  ],
+  "repair_baseline": {
+    "merge_commit": "22528a2967133c78c59f7455188b8e5f1165fc0c",
+    "scope": "Historical repair checks, not new production qualification",
+    "tested_pr_head": "98e12c4e9c70f236e2122b17fb93fd0ac71338ca",
+    "version": "0.2.3"
+  },
+  "repository": "terramike/xrpl-selectu5",
+  "review_decisions": {
+    "catalog_only_release": "pending",
+    "installer_enablement": "not_approved",
+    "pilot_artifact": "blocked",
+    "public_visibility": "not_approved"
+  },
+  "schema": "selectu5-production-evidence/1",
+  "status": "qualification_in_progress"
+}
