@@ -43,6 +43,72 @@ class RegistryError(ValueError):
     pass
 
 
+APPROVED_REPO_OWNERS = {"terramike"}
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+class _HttpsOnlyRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not newurl.startswith("https://"):
+            raise RegistryError("redirect to a non-https URL is refused")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_HttpsOnlyRedirect())
+
+
+def read_limited(src, limit):
+    """Read a source in bounded chunks. Stop before the limit is passed."""
+    import time
+    deadline = time.monotonic() + 60
+    if src.startswith(("https://", "file://")):
+        req = urllib.request.Request(src, headers={"User-Agent": f"xrpl-selectu5/{VERSION}"})
+        with _OPENER.open(req, timeout=20) as resp:
+            chunks, total = [], 0
+            while True:
+                if time.monotonic() > deadline:
+                    raise RegistryError("network deadline passed")
+                chunk = resp.read(65536)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > limit:
+                    raise RegistryError(f"source passes the {limit}-byte limit")
+                chunks.append(chunk)
+            return b"".join(chunks)
+    data = open(src, "rb").read(limit + 1)
+    if len(data) > limit:
+        raise RegistryError(f"source passes the {limit}-byte limit")
+    return data
+
+
+def build_plan(e, destination):
+    """One canonical plan for review. Its digest binds the approval to content."""
+    plan = {
+        "id": e["id"],
+        "version": e["version"],
+        "kind": e["kind"],
+        "access": e["access"],
+        "core_version": e.get("core_version"),
+        "repo": e["repo"],
+        "commit": e.get("ref"),
+        "artifact_sha256": e.get("artifact_sha256"),
+        "package_root": e.get("package_root"),
+        "permissions": e["permissions"],
+        "destination": destination,
+    }
+    blob = json.dumps(plan, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+    return plan, __import__("hashlib").sha256(blob).hexdigest()
+
+
+def verify_artifact(data, expected_sha256):
+    import hashlib
+    actual = hashlib.sha256(data).hexdigest()
+    if not expected_sha256 or actual != expected_sha256:
+        raise RegistryError("artifact digest does not match the reviewed digest")
+    return actual
+
+
 def esc(text):
     """Escape control characters so catalog text cannot drive the terminal."""
     return CONTROL_RE.sub(lambda m: "\\x%02x" % ord(m.group(0)), str(text))
@@ -107,6 +173,18 @@ def validate_registry(reg):
         ref = e.get("ref")
         if ref is not None and (not isinstance(ref, str) or CONTROL_RE.search(ref) or "/" in ref or "\\" in ref):
             raise RegistryError(f"{eid}: ref is unsafe")
+        if kind == "skill":
+            m = re.match(r"^https://github\.com/([^/]+)/([A-Za-z0-9._-]+)$", repo)
+            if not m or m.group(1) not in APPROVED_REPO_OWNERS:
+                raise RegistryError(f"{eid}: repo is not an approved GitHub owner/repo pair")
+            if ref is not None and not COMMIT_RE.match(ref):
+                raise RegistryError(f"{eid}: installable ref must be a full 40-char commit SHA")
+            digest = e.get("artifact_sha256")
+            if digest is not None and not SHA256_RE.match(digest):
+                raise RegistryError(f"{eid}: artifact_sha256 must be 64 lower hex chars")
+            root = e.get("package_root")
+            if root is not None and (not isinstance(root, str) or not re.match(r"^[A-Za-z0-9._-]+$", root)):
+                raise RegistryError(f"{eid}: package_root must be one path component")
         perm = e.get("permissions")
         if not isinstance(perm, dict):
             raise RegistryError(f"{eid}: permissions must be an object")
@@ -178,7 +256,7 @@ def load_registry():
     errors = []
     for src in candidates:
         try:
-            reg = json.loads(read_source(src).decode("utf-8"))
+            reg = json.loads(read_limited(src, 1024 * 1024).decode("utf-8"))
             return validate_registry(reg), src
         except Exception as exc:
             errors.append(f"{src}: {exc}")
@@ -365,7 +443,7 @@ def install_root(zf):
     return root, md
 
 
-def cmd_install(reg, local, entry_id, yes_version, source):
+def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None):
     e = get_entry(reg, entry_id)
     if not e:
         print(f"xrpl-selectu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
@@ -383,6 +461,20 @@ def cmd_install(reg, local, entry_id, yes_version, source):
         return 0
     print(f"\n{e['name']} [{e['id']}] — registry {e['version']}")
     print(permissions_card(e))
+    try:
+        destination = validate_destination(os.environ.get("SELECTU5_SKILLS_DIR", DEFAULT_SKILLS_DIR), e["id"])
+    except RegistryError as exc:
+        print(f"\nRefused: unsafe destination: {exc}", file=sys.stderr)
+        return 1
+    plan, plan_digest = build_plan(e, destination)
+    print("\ninstall plan (review every field):")
+    print(json.dumps(plan, indent=2, sort_keys=True))
+    print(f"plan digest (sha256): {plan_digest}")
+    print("A plan digest proves content consistency only. It does not prove a human approved it;")
+    print("the host must get the user's word before any real install call.")
+    if plan_arg and plan_arg != plan_digest:
+        print("\nRefused: --plan does not match the plan shown. Review the plan above and approve again.", file=sys.stderr)
+        return 1
     if not yes_version:
         print(f"\nDry run — nothing installed. To install this exact version, the user gives the word, then run:")
         print(f"  selectu5.py install {e['id']} --yes {e['version']}")
@@ -455,6 +547,8 @@ def main():
     p_inst = sub.add_parser("install"); p_inst.add_argument("id")
     p_inst.add_argument("--yes", metavar="VERSION", default=None,
                         help="install exactly this registry version (the user's word, encoded)")
+    p_inst.add_argument("--plan", metavar="SHA256", default=None,
+                        help="the plan digest the user approved after review")
     sub.add_parser("version")
     args = ap.parse_args()
     if args.cmd in (None, "version"):
@@ -476,7 +570,7 @@ def main():
     if args.cmd == "check-updates":
         return cmd_check(reg, local, source)
     if args.cmd == "install":
-        return cmd_install(reg, local, args.id, args.yes, source)
+        return cmd_install(reg, local, args.id, args.yes, source, args.plan)
     return 0
 
 
