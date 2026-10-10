@@ -31,7 +31,7 @@ Real installation remains DISABLED in the shipped command (`INSTALL_ENABLED = Fa
 | F03 | Repaired in code | OS lock before recovery, random tx IDs, validated journals, unique backups, rename refusal on existing destinations, restore-on-failure. Process-death lock/recovery test included. |
 | F04 | Repaired in code | Bounded catalog/distribution reads, aggregate extraction counter, extraction deadline. |
 | F05 | Repaired in code | Strict manifest parser is the install path; missing or duplicate safety fields fail. |
-| F06 | Partial | Community Shows v0.2.2 is merged and pinned by commit, but no reviewed fixed artifact digest or package root exists yet, so the entry stays list-only. |
+| F06 | Out of Alfred scope | Community Shows is owned by Codex. Selectu5 only lists facts Mike supplies; no Alfred-owned fixture/artifact work remains in this chat. The entry stays list-only until Mike supplies reviewed artifact facts. |
 | F07 | Repaired in code | Same install path checks core compatibility; equal-base prerelease cores are refused. |
 | F08 | Repaired in code | Catalog metadata is validated and escaped; invalid catalog data is distinguished from transport unavailability. |
 | F09 | Repaired in code | Inventory rejects backup/symlink cases and requires valid manifest identity for a known version. |
@@ -53,12 +53,7 @@ Environment-limited:
 
 ## Community Shows
 
-- Merged companion commit: `d0457fd53e1695a1b464bccc5391369eb7d5f7c3`.
-- Included packaging commit: `433f7538f18e8a306e680a3c883db593677a1102`.
-- Selectu5 catalog version: 0.2.2.
-- Artifact digest: not recorded yet.
-- Package root: not recorded yet.
-- Status: list-only until a fixed reviewed distribution artifact is prepared from that exact source state and installed offline through the real command path.
+Community Shows is owned by Codex, not by this Selectu5 repair. The catalog may list it from facts Mike supplies. Alfred does not prepare its fixed distribution artifact from this chat. Until Mike supplies a reviewed commit, artifact digest, and package root, the entry remains list-only.
 
 ## Remaining limits
 
@@ -69,8 +64,7 @@ Environment-limited:
 
 ## Maintainer decisions still needed
 
-1. Prepare and review the fixed Community Shows distribution artifact; record its digest and package root before making the entry installable.
-2. Choose a license before any public distribution.
-3. Enable branch protection and required checks on `main`.
-4. Review the final commit and Windows CI evidence.
-5. Say the word before the installer gate changes. The gate does not open on its own.
+1. Choose a license before any public distribution.
+2. Enable branch protection and required checks on `main`.
+3. Review the final commit and Windows CI evidence.
+4. Say the word before the installer gate changes. The gate does not open on its own.

@@ -65,7 +65,7 @@ skills folder.
 
 ```bash
 python3 scripts/selectu5.py list
-python3 scripts/selectu5.py show xrpl-community-shows
+python3 scripts/selectu5.py show xrpl-view-export
 python3 scripts/selectu5.py installed
 python3 scripts/selectu5.py check-updates
 ```
