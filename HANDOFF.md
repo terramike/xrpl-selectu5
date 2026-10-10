@@ -47,3 +47,20 @@ Installer enablement and exact release asset publication remain pending.
 
 Public repository visibility is authorized. Exact asset publication and installer enablement remain pending.
 Update this record before another pause. Preserve the tested identities and unresolved blockers.
+
+## 2026-10-10 — Stage 4 review package prepared
+
+Current state: public repository (Apache-2.0) with v0.2.4 and v0.2.5
+prereleases published and independently digest-verified; Stage 3 actual
+Linux qualification is complete including interruption recovery; release
+immutability is enabled; `main` branch protection is applied and verified
+(required linux+windows checks, one approval, no force pushes or branch
+deletion, admins not enforced).
+
+Stage 4 package (`docs/production/OPERATOR-ACTIONS.md`, refreshed
+`evidence.json`, acceptance addendum) is proposed in this pull request.
+Catalog C for the qualified 0.2.5 entry is proposed separately in PR #9
+(commit `1519904c932d2e3893b14d19d997b0e7b1d02d6e`); merging it does not
+enable installation. Remaining decisions: merge PR #5 and confirm the
+Windows actual run, merge PR #9, and any installer enablement as its own
+separate decision. `INSTALL_ENABLED = False` remains the shipped gate.

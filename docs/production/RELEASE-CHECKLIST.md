@@ -117,3 +117,11 @@ Historical evidence in this repository does not claim results for a future commi
 - [x] Enforce distribution records on skill entries only.
 - [x] Reject duplicate/colliding inventory paths and validate the finished ZIP with the installer archive validator.
 - [ ] Linux and Windows CI for the final PR #3 head (now including the new regression tests).
+
+## Stage 4 — release controls (2026-10-10)
+
+- [x] Enable Settings → Releases → Enable release immutability for future releases (operator, 2026-10-10; v0.2.4 predates the setting).
+- [x] Record effective branch protection on `main`: required linux+windows checks (strict), 1 approving review, dismiss stale reviews, no force pushes, no branch deletion, admins not enforced (verified via API 2026-10-10).
+- [x] Operator actions and return paths recorded in `docs/production/OPERATOR-ACTIONS.md`.
+- [ ] Merge PR #5 and confirm Windows CI runs the actual-artifact harnesses green.
+- [ ] Merge PR #9 (catalog C) as Mike's separate decision.

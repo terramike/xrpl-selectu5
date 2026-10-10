@@ -129,3 +129,21 @@ Verified historical checks for `e86b2d7`:
 - Windows: https://github.com/terramike/xrpl-selectu5/actions/runs/38031784905/job/114154075633
 
 These changes do not qualify private artifact retrieval or enable installation.
+
+## Stage 4 — review package (2026-10-10)
+
+- `docs/production/evidence.json` now records the current state (schema
+  `selectu5-production-evidence/2`): public repository, Apache-2.0,
+  v0.2.4 and v0.2.5 artifacts with S/D/asset URLs and independent digest
+  verification, Stage 3 actual-artifact results on Linux, release
+  immutability enabled, and `main` branch protection verified effective
+  (required linux+windows checks, 1 approval, no force pushes/deletion).
+- `docs/production/OPERATOR-ACTIONS.md` records operator actions and a
+  return path for each: publish, withdraw an entry, manual recovery,
+  control changes, security reports.
+- Catalog commit C for the qualified 0.2.5 entry is prepared in PR #9
+  (commit `1519904c932d2e3893b14d19d997b0e7b1d02d6e`). Merging C records
+  qualified facts in the live catalog; it does not enable installation.
+- Remaining decisions: PR #5 merge + Windows CI confirmation, PR #9 merge,
+  and any installer enablement (separate decision, out of scope here).
+  `INSTALL_ENABLED = False` remains the shipped gate.
