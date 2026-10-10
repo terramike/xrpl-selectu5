@@ -77,3 +77,10 @@ The actual-artifact interruption run also passes on Linux: a real
 restored 0.2.4 from its backup and then completed the 0.2.5 install
 (`STAGE3-INTERRUPT-RESULTS.md`). Only the Windows actual run remains in
 Stage 3, via the qualification branch CI.
+
+Stage 3 closed 2026-10-10: CI on PR #5 head `393cc564` passed all four
+jobs (linux and windows, push and pull_request), including the
+actual-artifact, update, and interruption harnesses on Windows. The
+Windows failures found and fixed on the way: backslash snapshot keys,
+two vacuous checks (wrong-digest and lock) rebuilt on their own
+destinations, and proc.kill() for cross-platform termination.
