@@ -1,0 +1,74 @@
+{
+  "schema": "selectu5-production-evidence/1",
+  "status": "not_started",
+  "created_at_utc": null,
+  "repository": "terramike/xrpl-selectu5",
+  "repair_baseline": {
+    "merge_commit": "22528a2967133c78c59f7455188b8e5f1165fc0c",
+    "tested_pr_head": "98e12c4e9c70f236e2122b17fb93fd0ac71338ca",
+    "version": "0.2.3",
+    "scope": "Historical repair checks, not new production qualification"
+  },
+  "candidate": {
+    "branch": null,
+    "commit": null,
+    "version": null,
+    "install_enabled": null,
+    "license_decision": null,
+    "supported_platforms_and_root_types": [],
+    "repository_controls": {"status": "not_run", "current": null, "proposed": null}
+  },
+  "artifact": {
+    "status": "not_run",
+    "repository": null,
+    "source_commit_S": null,
+    "catalog_commit_C": null,
+    "id": null,
+    "version": null,
+    "access": null,
+    "core_requirement": null,
+    "reviewed_permissions": null,
+    "request_url": null,
+    "observed_redirect_urls": [],
+    "production_fetcher_used": null,
+    "private_authentication_required": null,
+    "archive_path": null,
+    "archive_bytes": null,
+    "sha256_D": null,
+    "second_fetch_sha256": null,
+    "package_root": null,
+    "manifest_identity": null
+  },
+  "checks": [
+    {
+      "name": "Replace this example with an actual check",
+      "kind": "synthetic_or_actual_artifact_or_source_inspection_or_live_operation",
+      "status": "not_run",
+      "candidate_commit": null,
+      "platform": null,
+      "python_version": null,
+      "command": null,
+      "exit_code": null,
+      "passed": null,
+      "failed": null,
+      "skipped": null,
+      "ci_url": null,
+      "evidence_path": null,
+      "test_overrides": [],
+      "sentinels": [],
+      "reason": "Template only. No qualification result exists."
+    }
+  ],
+  "known_limits": [
+    "The shipped installer remains disabled.",
+    "No new artifact qualification has run.",
+    "Process interruption tests do not prove power-loss durability."
+  ],
+  "blockers": [],
+  "review_decisions": {
+    "catalog_only_release": "pending",
+    "pilot_artifact": "pending",
+    "installer_enablement": "not_approved",
+    "public_visibility": "not_approved"
+  }
+}
