@@ -1,78 +1,80 @@
-# Selectu5 audit repair — status report
+# Selectu5 remaining audit repairs — version 0.2.3
 
-Date: 2026-10-09 (America/Los_Angeles).
-Branch: `fix/selectu5-install-boundaries`.
-Audited commit: `bb1072536906c93b4d98ff6c36ca0749ef368a7f` (v0.2.0).
-Audit: `Selectu5-Audit-and-Alfred-Instructions-STE100.md` (Mike, 2026-10-09).
+## Release decision
 
-Real installation remains DISABLED (`INSTALL_ENABLED = False`) until
-Mike reviews this report and the remaining maintainer decisions land.
-The core XRPL Muse implementation is unchanged by this repair.
+The installer remains disabled. All bundled skill entries remain list-only.
+This repair addresses findings N01–N06 from the production audit.
+The source baseline is commit `1b9c340c191704b60d0e7dfa88a1eac025fd4f5b`.
+The historical version 0.2.2 packet remains in `AUDIT-PACKET.md`.
 
-## Finding status
+## Changes and evidence
 
-| Finding | Status | Evidence |
-| --- | --- | --- |
-| F01 destination escape / core overwrite | Closed in code | Strict ID rules, reserved core IDs, `validate_destination` (canonical root, symlink, case collision). Tests A01, A02. Install engine calls it under the lock. |
-| F02 approval does not bind package | Closed in code | Canonical plan + SHA-256 plan digest shown before approval; `--plan` mismatch refused; 40-char commit pins only; approved GitHub owner pairs; `archive` overrides banned from catalogs; digest verify before extraction. Tests A06, A07, A09. |
-| F03 failed update loses active install | Closed in code | Same-filesystem staging, unique backup names, transaction record before first rename, restore on final-rename failure, recovery pass before new mutations, exclusive lock. Tests A17, A18, A19, A29. |
-| F04 resource limits | Closed in code | Chunk-bounded reads (registry 1 MiB, download 25 MiB, deadline), archive metadata limits, counted decompression. Tests A10, A11, A12. |
-| F05 manifest access may be absent | Closed in code | Strict frontmatter grammar, duplicates rejected, name/version/access required. Test A13. |
-| F06 Community Shows seed.json rejected | Companion ready | Branch `fix/selectu5-fixture-rename` in terramike/xrpl-community-shows at `433f7538f18e`: `access` frontmatter added, fixture renamed to `data/shows-fixture.json`, v0.2.2. Needs Mike's review and merge before Selectu5 pins it. Credential-name rejection retained. Test A15/A16. |
-| F07 core compatibility ignored | Closed in code | `>=MAJOR.MINOR.PATCH` only; absent/unknown/old core refuses. Test A14. |
-| F08 registry validation and display | Closed in code | Whole-catalog validation, duplicate/unknown rejection, control-character rejection and escaping. Tests A01, A05, A25. |
-| F09 inventory trusts backups/symlinks | Closed in code | `.bak-` and dot folders excluded, symlink manifests rejected, bounded metadata reads. Test A20. |
-| F10 update check misreports versions | Closed in code | Semantic ordering; newer and unknown states reported plainly. Test A21. |
-| F11 inventory depends on registry | Closed in code | `installed` runs with no catalog; fallback prints source, catalog date, and a stale warning. Tests A23, A24. Tests: `test_A23_installed_without_registry`, `test_remote_registry_fallback`. |
-| F12 documents disagree | Closed in docs | SKILL/SPEC/README now separate transaction access from install side effects, state the host approval boundary, and describe snapshot freshness. Test A30 is this review. |
-| F13 release and test controls | Partial | CI workflow added (Linux + Windows jobs). The token in this environment cannot read Actions runs (HTTP 403), so a green remote run is not yet evidenced. License not selected: maintainer decision required. Branch protection: maintainer decision required. |
+| Finding | Change | Regression evidence |
+|---|---|---|
+| N01: Incorrect terminal recovery | Mark rollback recovered only after validated restoration or removal of a failed new install. Preserve ambiguous published content and its backup. | Corrupt provenance after publication during a new install and an update. Both cases retain a pending journal and refuse automatic recovery. Existing successful rollback tests still pass. |
+| N02: Completed records block installation | Count only pending journals toward the 100-record and 1 MiB limits. Archive terminal records on the next recovery call. Retain the latest 100 terminal records. Preserve package backups. | Complete 150 installs, restart recovery in another process, and complete another update. Migrate 101 legacy terminal records. Refuse 101 pending records without removal. |
+| N03: Windows path boundaries | Preserve drive and UNC anchors. Reject symlinks, junctions, and other Windows reparse points. Compare protected paths with platform case rules. | Model drive and UNC component walks. Windows CI runs native junction checks from a nonroot working directory for roots, targets, inventory, staging, recovery, and backups. |
+| N04: Core read limits | Read only public core manifests. Do not read core provenance, including reserved aliases and the configured core path. | Instrument file reads for three reserved core names. Refuse any provenance read for a configured core folder. |
+| N05: Windows ZIP fixture | Preserve a raw backslash in the ZIP fixture. Assert the raw member name before validation. | The original negative archive test now checks the intended archive bytes on Windows. The archive policy remains strict. |
+| N06: Download deadline | Run URL transport in a separate process. Terminate and collect that process after a 60-second total deadline. Preserve byte limits, transport errors, and redirect checks. | A local HTTP server sends a slow response body or delays headers. Both actual transport tests stop at a reduced test deadline. File URL tests check success, overflow, and missing files. |
 
-## Acceptance mapping
+## Validation
 
-Executed in tests: A01, A02, A05, A06, A07, A09, A10 (download limit
-logic via `read_limited`; registry limit unit path), A11, A12, A13,
-A14, A15, A16, A17, A18, A19, A20, A21, A23, A24, A25 (validation
-rejection), A26 (core and showcase stay notices), A27 (dry runs change
-nothing; install fixtures assert no target on refusal), A29.
-Source-inspected or environment-limited: A03 (destination checks are
-unit-tested; no hostile concurrent writer is assumed — see limits),
-A04 (backup names come from the validated ID plus a transaction ID,
-never manifest text), A08 (redirect handler refuses non-https;
-catalogs cannot carry overrides), A22 (provenance needs a reviewed
-artifact digest in the catalog; the comparison logic ships with the
-metadata record but no live entry carries a digest yet), A28 (CI
-defined for Linux and Windows; remote run unverified from here),
-A30 (documentation sync in this branch).
+Local environment: Linux, Python 3.12.14.
+Command: `python3 -m unittest discover -s tests -v`.
+The suite contains 62 tests. Linux skips only the native Windows junction test.
+GitHub CI runs the same suite on Linux and Windows with Python 3.12.
+The pull request checks provide the authoritative CI result for the submitted commit.
 
-## Commands run
+Additional checks: Python compilation, offline catalog listing, version output, and Git whitespace validation.
+No test enables the shipped installer or executes an installed package.
+The slow transport tests use a local HTTP server. Production artifact transport still requires approved HTTPS endpoints.
 
-- `python3 -m unittest discover -s tests` — 37 tests, OK (3 install
-  fixtures skipped while the gate is shut; they return with the
-  re-enable review).
-- Offline dummy installs through the test transport with fixture
-  archives only. No real package script ran. No live GitHub archive
-  was downloaded through the installer.
+## Limits and operator instructions
 
-## Limits that remain true
+An invalid published identity can require manual recovery. Selectu5 preserves the journal, active content, and available backup.
+This repair does not delete unknown active content automatically.
 
-- Two renames are not one atomic transaction; the transaction record
-  is the recovery mechanism. Recovery is tested for the recorded
-  intermediate states, not for power loss mid-write on every platform.
-- A canonical path check does not stop a hostile writer that already
-  controls the skills root. Supported use assumes no hostile
-  concurrent writer in that directory.
-- A plan digest proves consistency, not human consent. The host must
-  enforce the user's approval before a real install call.
-- Supported systems: Linux (tested locally) and Windows (CI defined,
-  run unverified from this environment). macOS is not claimed.
+1. Stop installation attempts when recovery reports an ambiguous state.
+2. Preserve the pending journal and all associated package folders.
+3. Compare the active manifest and provenance with the journal identities.
+4. Restore a validated old backup only after an operator reviews the recorded state.
+5. Run recovery again after the operator resolves the active path.
 
-## Maintainer decisions still needed
+History retention removes only validated terminal journal records beyond the latest 100 records.
+Package backups remain available. Operators must review backups before manual removal.
+More than 1,000 current journal files or history files requires manual review.
+The process deadline includes transport and output collection. Process startup can add platform scheduling time.
+The timeout implementation requires permission to create a Python subprocess.
 
-1. Review and merge the Community Shows companion branch, then let
-   Selectu5 pin its reviewed commit and artifact digest.
-2. Choose a license before any public distribution.
-3. Enable branch protection and required checks on `main`.
-4. Decide the fixed release artifact format (preferred over a
-   regenerated repository ZIP) so artifact digests stay stable.
-5. Say the word to re-enable real installation after reviewing this
-   report; the gate does not open on its own.
+These tests cover process interruption and ordinary filesystem failures.
+They do not prove power-loss durability or resistance to a hostile concurrent filesystem writer.
+UNC anchor traversal has a model test. A native network-share pilot remains a separate release check.
+
+## Next steps toward production
+
+1. Review this pull request and require successful Linux and Windows checks before merge.
+2. Keep `INSTALL_ENABLED = False` in the catalog-only release.
+3. Select a license before public distribution.
+4. Configure required branch checks and review controls before production changes.
+5. Review the exact source commit, ZIP bytes, package root, manifest, and permissions for one pilot artifact.
+6. Record its SHA-256 digest and immutable source commit in a subsequent reviewed catalog update.
+7. Test actual HTTPS retrieval, installation, update, interruption, and recovery in disposable Linux and Windows roots.
+8. Check the configured core and credential sentinels after each pilot operation.
+9. Review native network-share behavior if the production release supports UNC roots.
+10. Obtain Mike's release decision before enabling the installer or changing repository visibility.
+
+Use a distinct package version for different artifact bytes.
+Do not invent a companion artifact digest or reuse an earlier version for changed bytes.
+The catalog cannot contain a digest of its own future archive. Record the artifact digest in a subsequent catalog commit.
+Companion packaging and service behavior require their own review.
+
+## Glossary
+
+- Terminal journal: A validated journal with stage `done` or `recovered`.
+- Pending journal: A validated journal with another accepted stage.
+- Provenance: The installed identity record in `.selectu5-meta.json`.
+- Reparse point: A Windows filesystem object that can redirect path operations.
+- UNC anchor: The server and share at the start of a Windows network path.
+
+This report uses STE100-based technical English. It is not a certified ASD dictionary check.

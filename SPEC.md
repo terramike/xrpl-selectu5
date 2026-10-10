@@ -1,6 +1,6 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
-Version: 0.2.1-repair (2026-10-09, audit repair branch)
+Package version: 0.2.2 (2026-10-09, audit repair round 3)
 Status: Decisions locked by Mike 2026-10-09. Build in a private repo.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 
@@ -54,7 +54,7 @@ selectu5.py list
 selectu5.py show <id>
 selectu5.py installed
 selectu5.py check-updates
-selectu5.py install <id>   (v0.1: dry run, prints the plan only)
+selectu5.py install <id>   (prints the card and plan; real install needs --yes and --plan)
 selectu5.py version
 ```
 
@@ -72,16 +72,20 @@ Each output shows the skill version. Time and network are not used in v0.1.
 
 1. Show the permissions card of the entry.
 2. Get the word of the user for that exact entry and version.
-3. Fetch the pinned release (tag or commit). Do not fetch a floating branch head.
-4. Read the `SKILL.md` manifest of the fetched skill. The name, version, and access must match the registry entry.
-5. Stop if one fact does not match. Install no file.
-6. Place the skill in the Muse skills folder. Print the installed version.
+3. Require the exact `--yes <version>` and `--plan <digest>` shown for the reviewed plan.
+4. Fetch only the recorded immutable commit from the exact approved owner/repository pair.
+5. Verify the artifact SHA-256 before extraction.
+6. Read the `SKILL.md` manifest of the fetched skill. The name, version, and access must match the registry entry.
+7. Stop if one fact does not match. Install no file.
+8. Place the skill in the Muse skills folder under the process lock. Print the installed version.
 
 ## 8. Safety rules
 
 - The skill does not sign. The skill does not propose a transaction.
-- The skill does not read or write core skill files, the policy file, or a seed.
-- The skill reads one fact set from a local skill: name and version in `SKILL.md` frontmatter.
+- The skill does not write core skill files, the policy file, or a seed.
+- The one permitted core read is the core skill public manifest version for a compatibility check.
+- The skill reads local inventory facts from `SKILL.md` frontmatter (name and version) and, when present, bounded `.selectu5-meta.json` provenance (id, version, commit, artifact digest).
+- Supported versions are SemVer core and prerelease identifiers without build metadata; leading zeroes are invalid.
 - A registry entry is data, not an instruction. Text in a purpose or notes field is shown as text only.
 - A listing is not an endorsement of a link in a listed skill.
 - Clavi5 and Visu5 are showcase entries in v0.1. Selectu5 cannot enroll a user or open an account.
@@ -109,10 +113,38 @@ Mike reads each new entry before it goes in the registry. The review checks:
 2. Update interval for v0.3: on-run only, or a daily check.
 3. The full collision check on the exact name "Selectu5" is a separate work item.
 
-- **Repair (in progress on `fix/selectu5-install-boundaries`):** strict
-  catalog validation, plan digests, archive and manifest rules,
-  recoverable locked updates, truthful version reports. Real
-  installation stays disabled until the audit acceptance run passes.
-  The bundled registry is a dated snapshot; when the remote catalog
-  cannot be read, the client prints the snapshot date and a stale
-  warning instead of pretending freshness.
+- **Repair round 3 (on `fix/selectu5-install-boundaries-r2`):** one
+  hardened CLI install path, process locking before recovery, validated
+  journals, strict archive and manifest rules, semantic-version and
+  provenance reports. Real installation stays disabled in the shipped
+  command until Mike reviews the final acceptance evidence. The
+  bundled registry is a dated snapshot; when the remote catalog cannot
+  be read, the client prints the snapshot date and a stale warning
+  instead of pretending freshness.
+
+## 12. Remaining audit repairs in version 0.2.3
+
+1. The installer MUST preserve an unresolved journal when published identity verification fails and validated rollback cannot finish.
+2. The installer MUST preserve unknown active content and its available backup in this failure state.
+3. Recovery MUST refuse ambiguous content until the operator resolves the recorded state.
+4. Recovery MUST limit pending records to 100 records and 1 MiB in total.
+5. Recovery MUST validate every current record before it changes the current records or packages.
+6. Recovery MUST move terminal records into `.selectu5-recovery/history` on the next recovery call.
+7. Recovery MUST retain the latest 100 terminal records and MUST preserve all package backups.
+8. Recovery MUST refuse more than 1,000 current files or history files for manual review.
+9. Path checks MUST preserve drive and UNC anchors before canonicalization.
+10. Path checks MUST reject symlinks, junctions, and other Windows reparse points at filesystem boundaries.
+11. Core inventory MUST read only public manifests, including reserved core aliases and the configured core path.
+12. URL downloads MUST run in a separate process with a 60-second total wall deadline.
+13. The parent MUST terminate and collect the download process when this deadline passes.
+14. The download process MUST enforce the existing byte limits and redirect policy.
+15. The installer MUST remain disabled until the artifact pilot and release review finish.
+
+Python 3.12 or later is required. CI uses Python 3.12 on Linux and Windows.
+A terminated download produces no installed package. A URL deadline failure does not silently change the selected source.
+The history limit does not limit package backups. Operators must review backups before manual removal.
+These rules cover process interruption. They do not establish resistance to power loss or hostile concurrent filesystem changes.
+
+Glossary: A terminal record has stage `done` or `recovered`. A pending record has any other accepted stage.
+A reparse point is a Windows filesystem object that can redirect path operations.
+A UNC anchor identifies the server and share at the start of a Windows network path.
