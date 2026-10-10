@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""xrpl-selectu5 0.2.4 — Selectu5, the XRPL Muse skill app store.
+"""xrpl-selectu5 0.2.5 — Selectu5, the XRPL Muse skill app store.
 
 Companion skill. Read-only toward the core: it reads a curated registry
 and the version frontmatter of local skills. Installs happen only with
@@ -24,7 +24,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-VERSION = "0.2.4"
+VERSION = "0.2.5"
 # Audit repair gate (2026-10-09): real installation stays disabled until
 # the acceptance criteria in the audit report pass. Dry-run cards stay on.
 INSTALL_ENABLED = False
