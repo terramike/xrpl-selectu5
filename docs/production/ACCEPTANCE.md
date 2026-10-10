@@ -140,8 +140,11 @@ contention run against those exact bytes in a disposable root. Linux evidence:
 `docs/production/STAGE3-RESULTS.md` and `stage3-evidence.json`. CI runs the
 same harness on Linux and Windows.
 
-Stage 3 remains **partial**: an actual update still needs a second distinct
-reviewed artifact, an actual-artifact interruption run is outstanding, and
-the Windows actual run comes from CI on the qualification branch. No catalog
+Stage 3 update leg **closed on Linux**: the actual 0.2.4 -> 0.2.5 update between
+published release assets passes through the production fetcher
+(`docs/production/STAGE3-UPDATE-RESULTS.md`), including post-update no-op
+and preserved 0.2.4 backup. Stage 3 remains partial only for the
+actual-artifact interruption run and the Windows actual run (CI on the
+qualification branch). No catalog
 commit C exists, no entry is installable from the shipped client, and
 `INSTALL_ENABLED = False` remains the shipped gate.

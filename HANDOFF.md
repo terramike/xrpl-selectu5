@@ -64,3 +64,10 @@ Still open in Stage 3: an actual update (needs a second distinct reviewed
 artifact), an actual-artifact interruption run, and the Windows actual run.
 No catalog commit C exists yet, no entry is installable from the shipped
 client, and `INSTALL_ENABLED = False` remains the shipped gate.
+
+The 0.2.5 prerelease was published by the release-automation workflows
+(prep run 38038529791, digest approved, publish run verified) with release
+immutability enabled. Actual update qualification now passes on Linux:
+fresh 0.2.4 install -> production-fetcher update to 0.2.5 -> preserved
+backup and zero-fetch no-op (`STAGE3-UPDATE-RESULTS.md`). Remaining Stage 3
+items: the actual-artifact interruption run and the Windows actual run.
