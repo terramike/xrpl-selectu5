@@ -1,0 +1,258 @@
+{
+  "artifact": {
+    "archive_bytes": 55567,
+    "production_fetcher_used": "selectu5.fetch_distribution",
+    "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+    "reason": null,
+    "repository": "terramike/xrpl-selectu5",
+    "request_url": "https://github.com/terramike/xrpl-selectu5/archive/7db6c62951b552d15fa13cc09e1f083f073ca92a.zip",
+    "sha256_D": "f726b96988774e4033c5e110dfd6decad8fa49992ee1f69175079b2587246551",
+    "source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+    "status": "retrieved"
+  },
+  "candidate": {
+    "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+    "branch": "codex/selectu5-production-qualification",
+    "install_enabled": true,
+    "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+    "version": "0.2.6"
+  },
+  "checks": [
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "evidence": "code=0.2.6 manifest=0.2.6 catalog=0.2.5 install_enabled=True",
+      "kind": "source_inspection",
+      "name": "source versions and gate",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "status": "pass",
+      "test_overrides": []
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "evidence": "xrpl-view-export, xrpl-community-shows",
+      "kind": "source_inspection",
+      "name": "unqualified entries list-only",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "status": "pass",
+      "test_overrides": []
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "command": "python3 -m unittest discover -s tests",
+      "evidence": "ResourceWarning: Enable tracemalloc to get the object allocation traceback\n....................................................\n----------------------------------------------------------------------\nRan 87 tests in 10.359s\n\nOK (skipped=1)",
+      "exit_code": 0,
+      "kind": "synthetic",
+      "name": "repository test suite",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "status": "pass",
+      "test_overrides": []
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "evidence": "SELECTU5_CORE_DIR=/tmp/selectu5-qualify-e0a5tk8l/dummy-core; supplied core_version_text=0.14.1 read from dummy manifest by the harness",
+      "kind": "synthetic",
+      "name": "dummy core binding",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "status": "pass",
+      "test_overrides": [
+        "SELECTU5_CORE_DIR bound to the disposable dummy core"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "evidence": "raw_skills=/tmp/selectu5-qualify-e0a5tk8l/./skills; canonical_destination=/tmp/selectu5-qualify-e0a5tk8l/skills/xrpl-demo; plan_digest=d6585449190b6cd8f8091ba4782011ff0595b3bd85caec23d3403a636effef1c",
+      "kind": "synthetic",
+      "name": "canonical plan destination",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "status": "pass",
+      "test_overrides": [
+        "SELECTU5_CORE_DIR bound to the disposable dummy core"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "credential_sentinel_reads": 0,
+      "dummy_core_manifest_reads": 0,
+      "evidence": "igest (sha256): d6585449190b6cd8f8091ba4782011ff0595b3bd85caec23d3403a636effef1c\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.0 -> /tmp/selectu5-qualify-e0a5tk8l/skills/xrpl-demo\nxrpl-selectu5 0.2.6: install complete. The new skill shows its own version on its next run. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
+      "fetcher_calls": 1,
+      "kind": "synthetic",
+      "name": "synthetic fresh install via cmd_install",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "sentinel_hashes_after": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "sentinel_hashes_before": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR",
+        "SELECTU5_CORE_DIR bound to the disposable dummy core",
+        "builtins.open instrumented for dummy sentinel paths during each operation"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "credential_sentinel_reads": 0,
+      "dummy_core_manifest_reads": 0,
+      "evidence": "56): d6585449190b6cd8f8091ba4782011ff0595b3bd85caec23d3403a636effef1c\nA plan digest proves content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-demo 1.0.0 is already installed with matching provenance. Nothing changed. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
+      "fetcher_calls": 0,
+      "kind": "synthetic",
+      "name": "synthetic matching-provenance no-op",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "sentinel_hashes_after": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "sentinel_hashes_before": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR",
+        "SELECTU5_CORE_DIR bound to the disposable dummy core",
+        "builtins.open instrumented for dummy sentinel paths during each operation"
+      ],
+      "tree_unchanged": true
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "backup_tree_unchanged": true,
+      "backups": [
+        "xrpl-demo.bak-1a129231c35-6c0e5fc207251da2"
+      ],
+      "credential_sentinel_reads": 0,
+      "dummy_core_manifest_reads": 0,
+      "evidence": "nt consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.1 -> /tmp/selectu5-qualify-e0a5tk8l/skills/xrpl-demo\nprevious version kept at: /tmp/selectu5-qualify-e0a5tk8l/skills/xrpl-demo.bak-1a129231c35-6c0e5fc207251da2\nxrpl-selectu5 0.2.6: install complete. The new skill shows its own version on its next run. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0) | active_version=1.0.1 provenance_version=1.0.1 provenance_digest=2e8f8c47ff6c03bb9ed80b7214eb2b211c78d90ab9788d864099856ae7016b1c expected_v2_digest=2e8f8c47ff6c03bb9ed80b7214eb2b211c78d90ab9788d864099856ae7016b1c | backup=xrpl-demo.bak-1a129231c35-6c0e5fc207251da2 backup_version=1.0.0 backup_digest=4036e6e1dde582ee413ee8071db6b89c78a4691817b2175b3078ccb8dc529667 expected_v1_digest=4036e6e1dde582ee413ee8071db6b89c78a4691817b2175b3078ccb8dc529667",
+      "fetcher_calls": 1,
+      "kind": "synthetic",
+      "name": "synthetic update with backup",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "sentinel_hashes_after": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "sentinel_hashes_before": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR",
+        "SELECTU5_CORE_DIR bound to the disposable dummy core",
+        "builtins.open instrumented for dummy sentinel paths during each operation"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "credential_sentinel_reads": 0,
+      "dummy_core_manifest_reads": 0,
+      "evidence": " a human approved it;\nthe host must get the user's word before any real install call.\nInstall failed: artifact digest does not match the reviewed digest\nactive location checked: /tmp/selectu5-qualify-e0a5tk8l/skills/xrpl-demo\nAny completed backup keeps its unique transaction name in the skills root. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
+      "fetcher_calls": 1,
+      "kind": "synthetic",
+      "name": "synthetic rejected request (wrong digest)",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "sentinel_hashes_after": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "sentinel_hashes_before": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR",
+        "SELECTU5_CORE_DIR bound to the disposable dummy core",
+        "builtins.open instrumented for dummy sentinel paths during each operation"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "credential_sentinel_reads": 0,
+      "dummy_core_manifest_reads": 0,
+      "evidence": "s content consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-demo 1.0.1 -> /tmp/selectu5-qualify-e0a5tk8l/skills/xrpl-demo\nxrpl-selectu5 0.2.6: install complete. The new skill shows its own version on its next run. | sentinels_unchanged=True; dummy_core_manifest_reads_during_op=0 (allowed public-manifest reads only); credential_sentinel_reads_during_op=0 (must be 0)",
+      "fetcher_calls": 1,
+      "kind": "synthetic",
+      "name": "synthetic recovery after interrupted publish",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "sentinel_hashes_after": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "sentinel_hashes_before": {
+        "/tmp/selectu5-qualify-e0a5tk8l/credential-sentinel.txt": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+        "/tmp/selectu5-qualify-e0a5tk8l/dummy-core/SKILL.md": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab"
+      },
+      "status": "pass",
+      "test_overrides": [
+        "install_enabled=True passed only to cmd_install inside this harness",
+        "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+        "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+        "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR",
+        "SELECTU5_CORE_DIR bound to the disposable dummy core",
+        "builtins.open instrumented for dummy sentinel paths during each operation"
+      ]
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "evidence": "Final hashes compared with the pre-operation hashes; per-operation read counts are recorded on each operation check.",
+      "kind": "synthetic",
+      "name": "dummy core and credential sentinels unchanged at end",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "sentinels": [
+        {
+          "after": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab",
+          "before": "1df0ce7f8356e160db62968f2d9a918d0bf9b021dd71e7beed45477e76414cab",
+          "path": "SKILL.md"
+        },
+        {
+          "after": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+          "before": "828191539d2760767a4c67ecf462bf7ad662cda2296fe11b38c04d22784f088b",
+          "path": "credential-sentinel.txt"
+        }
+      ],
+      "status": "pass",
+      "test_overrides": []
+    },
+    {
+      "artifact_source_commit_S": "7db6c62951b552d15fa13cc09e1f083f073ca92a",
+      "evidence": "bytes=55567 sha256=f726b96988774e4033c5e110dfd6decad8fa49992ee1f69175079b2587246551",
+      "kind": "actual_artifact",
+      "name": "actual production fetch",
+      "qualification_code_commit": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+      "status": "pass",
+      "test_overrides": []
+    }
+  ],
+  "disposable_root": "/tmp/selectu5-qualify-e0a5tk8l",
+  "known_limits": [
+    "Actual update qualification is synthetic until two production-transport artifacts exist.",
+    "Process interruption evidence does not prove power-loss durability.",
+    "UNC roots are excluded until a native UNC pilot passes."
+  ],
+  "schema": "selectu5-qualification-evidence/1",
+  "test_overrides": [
+    "install_enabled=True passed only to cmd_install inside this harness",
+    "fetcher=<synthetic in-memory ZIP fetcher> passed to cmd_install; no network",
+    "trusted_catalog=TRUSTED_INSTALL_SOURCE injected for isolated synthetic entries",
+    "core_version_text supplied from the dummy core manifest bound by SELECTU5_CORE_DIR",
+    "SELECTU5_CORE_DIR bound to the disposable dummy core",
+    "builtins.open instrumented for dummy sentinel paths during each operation"
+  ]
+}

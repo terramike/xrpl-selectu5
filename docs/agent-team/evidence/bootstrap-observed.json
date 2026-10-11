@@ -1,0 +1,37 @@
+{
+  "chain_rule": "Each release bundles its predecessor's qualified catalog record; an installed client can install exactly the versions its bundled catalog authorizes.",
+  "checks": [
+    {
+      "evidence": "xrpl-selectu5 0.2.6",
+      "name": "candidate client runs",
+      "status": "pass"
+    },
+    {
+      "evidence": "a human approved it;\nthe host must get the user's word before any real install call.\n\nDry run \u2014 nothing installed. To install this exact version, the user gives the word, then run:\n  selectu5.py install xrpl-selectu5 --yes 0.2.5 --plan 40b6b0ceef519b0c25b9df3a528f037630113a95f4c9b95a0a3cc83b28dae6b4",
+      "name": "dry run shows plan and consent warning",
+      "status": "pass"
+    },
+    {
+      "evidence": "consistency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\ninstalled: xrpl-selectu5 0.2.5 -> /tmp/selectu5-bootstrap-_l80wcb4/skills/xrpl-selectu5\nxrpl-selectu5 0.2.6: install complete. The new skill shows its own version on its next run.",
+      "installed_version": "0.2.5",
+      "name": "bootstrap installs qualified predecessor via shipped CLI",
+      "status": "pass"
+    },
+    {
+      "evidence": "INSTALL_ENABLED in installed 0.2.5 artifact: False",
+      "installed_gate": "False",
+      "name": "installed predecessor gate state recorded",
+      "status": "pass"
+    },
+    {
+      "evidence": "stency only. It does not prove a human approved it;\nthe host must get the user's word before any real install call.\n\nxrpl-selectu5 0.2.5 is already installed with matching provenance. Nothing changed.",
+      "name": "repeat install is a no-op",
+      "status": "pass"
+    }
+  ],
+  "client_package_root": "xrpl-selectu5-0.2.6",
+  "client_zip": "../candidate.zip",
+  "disposable_root": "/tmp/selectu5-bootstrap-_l80wcb4",
+  "expect_install_version": "0.2.5",
+  "schema": "selectu5-bootstrap-evidence/1"
+}

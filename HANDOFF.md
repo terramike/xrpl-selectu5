@@ -125,3 +125,13 @@ CI: https://github.com/terramike/xrpl-selectu5/actions/runs/38042700935 and http
 Earlier head results remain historical evidence. Stage 3 has passed; PR #5 still requires review and merge.
 Review host consent, catalog authority, and credential-read evidence before a separate installer enablement decision.
 Unchanged sentinel hashes do not establish zero reads. The shipped installer remains disabled.
+
+## Independent change audit and shared instructions
+
+Audit baseline: main `eb4c56ca94a53347e1579e44cf287459ca7f3e27`, PR #11 `0bfb00a04b0161fd823775e1ffde3ec4254dbfc4`, PR #12 `83d4452959ab9a2a60c21263aff2aa028ed1c852`.
+Read `docs/agent-team/README.md` for the current audit, repair tasks, Codex goal, evidence, and historical instructions.
+Local Linux suite: 87 tests, zero failures, one skip. Both audited PR heads have four successful CI jobs.
+The audit reproduced invalid recovery evidence, a printed command without `--offline`, and incomplete bootstrap acceptance and artifact retention.
+The bootstrap installs a disabled 0.2.5 predecessor. Qualification of later manual external-client update hops remains separate.
+This instruction upload does not approve enablement, publication, or real user installation.
+The current shared goal preserves those limits and requires findings A01 through A04 to close before acceptance.
