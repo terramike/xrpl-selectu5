@@ -115,3 +115,21 @@ update procedure lives in `docs/production/BOOTSTRAP-AND-UPDATE.md`
 `scripts/qualify_bootstrap.py` tests it with the shipped CLI and actual
 published artifacts, with gate and bundled-catalog state asserted by
 `tests/test_enablement_state.py`.
+
+## Correction (2026-10-11 change audit, A01)
+
+The 2026-10-10 correction above was built on a defective recovery
+fixture (a hand-written record in the wrong directory and schema). The
+corrected instrumentation, shipped on the 0.2.6 candidate:
+
+- Crashes a real engine transaction at the old-version rename, leaving
+  a production-schema journal record in `.selectu5-recovery` at a
+  non-terminal stage.
+- Asserts the next operation reports a specific recovery action,
+  the journal reaches a terminal stage, content and provenance match
+  the baseline, and dummy credential-sentinel reads are 0.
+- Adds a regression proving a plain fresh install reports no recovery
+  action, so the check cannot be satisfied without real recovery.
+
+The separate Stage 3 actual-artifact interruption results stand on
+their own evidence.
