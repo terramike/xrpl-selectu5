@@ -1,0 +1,145 @@
+{
+  "schema": "selectu5-independent-audit/1",
+  "date_utc": "2026-10-11",
+  "date_america_los_angeles": "2026-10-10",
+  "repository": "terramike/xrpl-selectu5",
+  "main": "eb4c56ca94a53347e1579e44cf287459ca7f3e27",
+  "review_doc_head": "0bfb00a04b0161fd823775e1ffde3ec4254dbfc4",
+  "candidate_head": "83d4452959ab9a2a60c21263aff2aa028ed1c852",
+  "source_retrieval": {
+    "files": 46,
+    "git_blob_hash_mismatches": 0,
+    "method": "GitHub connector UTF-8 contents, verified against recursive Git tree"
+  },
+  "local_environment": {
+    "platform": "Linux",
+    "python": "3.12.14"
+  },
+  "local_checks": [
+    {
+      "command": "python -W ignore::ResourceWarning -m unittest discover -s tests -q",
+      "exit_code": 0,
+      "tests": 87,
+      "failures": 0,
+      "skipped": 1,
+      "evidence": "evidence/local-tests.txt"
+    },
+    {
+      "command": "python scripts/qualify.py --source-commit 7db6c62951b552d15fa13cc09e1f083f073ca92a --qualification-commit 83d4452959ab9a2a60c21263aff2aa028ed1c852 --output-json qualification.json --output-md qualification.md",
+      "exit_code": 0,
+      "reported_passes": 12,
+      "audit_exception": "A01: reported recovery pass actually performed fresh installation.",
+      "evidence": "evidence/qualification-observed.json"
+    },
+    {
+      "command": "python scripts/package.py --source-root . --inventory docs/production/package-inventory.json --out candidate.zip --record candidate-record.json",
+      "exit_code": 0,
+      "bytes": 31751,
+      "sha256": "2e82608a2981bc471188b10552ac2e5e8768672dfa4b9c02ef8290cdaa96ff83",
+      "evidence_class": "development-working-tree",
+      "rebuild_verified": false,
+      "evidence": "evidence/development-package-record.json"
+    },
+    {
+      "command": "python scripts/qualify_bootstrap.py --client-zip candidate.zip --expect-install-version 0.2.5 --output-json bootstrap.json",
+      "exit_code": 0,
+      "reported_passes": 5,
+      "installed_gate": false,
+      "limits": [
+        "First hop only",
+        "No-op does not independently measure fetches or tree mutation"
+      ],
+      "evidence": "evidence/bootstrap-observed.json"
+    },
+    {
+      "name": "Exact printed dry-run command replay",
+      "exit_code": 1,
+      "reason": "Refused: this catalog is browse-only. Installations require the locally reviewed catalog. Nothing was fetched.",
+      "omitted_option": "--offline"
+    }
+  ],
+  "ci_observation": {
+    "11": [
+      {
+        "id": 114191470769,
+        "name": "windows",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044599449/job/114191470769"
+      },
+      {
+        "id": 114191470749,
+        "name": "linux",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044599449/job/114191470749"
+      },
+      {
+        "id": 114191460276,
+        "name": "windows",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044595824/job/114191460276"
+      },
+      {
+        "id": 114191460082,
+        "name": "linux",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044595824/job/114191460082"
+      }
+    ],
+    "12": [
+      {
+        "id": 114191626337,
+        "name": "linux",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044651839/job/114191626337"
+      },
+      {
+        "id": 114191626192,
+        "name": "windows",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044651839/job/114191626192"
+      },
+      {
+        "id": 114191616756,
+        "name": "windows",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044648559/job/114191616756"
+      },
+      {
+        "id": 114191616663,
+        "name": "linux",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/terramike/xrpl-selectu5/actions/runs/38044648559/job/114191616663"
+      }
+    ]
+  },
+  "findings": [
+    "A01",
+    "A02",
+    "A03",
+    "A04"
+  ],
+  "not_performed": [
+    "Local Windows execution",
+    "Full independent repeat of Stage 3 interruption matrix",
+    "Release-prep",
+    "Release publication",
+    "Enablement merge",
+    "Real user installation"
+  ],
+  "authority": "Audit and instruction upload only. No enablement or publication approval.",
+  "raw_evidence_notice": "Raw harness files preserve reported results, including the invalid recovery pass. Temporary paths identify disposable dummy fixtures.",
+  "writing_review": {
+    "method": "STE100-based structural review",
+    "linter": "ste-lint.py with synonym-rotation disabled after review",
+    "reason": "The generic synonym rule conflates technical terms and document titles. Exact identifiers and titles remain unchanged.",
+    "compliance_claim": "No certified compliance claim."
+  }
+}

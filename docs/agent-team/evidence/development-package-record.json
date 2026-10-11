@@ -1,0 +1,68 @@
+{
+  "archive_bytes": 31751,
+  "build_tool": {
+    "package_py": "1.1",
+    "python": "3.12.14"
+  },
+  "evidence_class": "development-working-tree",
+  "files": [
+    {
+      "bytes": 2663,
+      "executable": false,
+      "path": "CHANGELOG.md",
+      "sha256": "553a6a6ffad7d4a12dcfd8200169f8af1b8a946dbc29ae24526abda7d16fb3bd"
+    },
+    {
+      "bytes": 11358,
+      "executable": false,
+      "path": "LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "bytes": 54,
+      "executable": false,
+      "path": "NOTICE",
+      "sha256": "7a35f4e9f82d0a6fcd4b4fb37e9f5928d1f20dcd2c65db8cb0f28e34f80188b4"
+    },
+    {
+      "bytes": 1466,
+      "executable": false,
+      "path": "README.md",
+      "sha256": "199606f461cf31bb62e9603af012207183d658fbee8b08f65b601ffbbe5af2db"
+    },
+    {
+      "bytes": 4129,
+      "executable": false,
+      "path": "SKILL.md",
+      "sha256": "1ea15c37ed5e14f24fc5f29afec045135ac3a8acc1873e90e71d1d7afda4cd92"
+    },
+    {
+      "bytes": 8730,
+      "executable": false,
+      "path": "SPEC.md",
+      "sha256": "423ca859066cc9b645208170c1abc604877cf707f9374edeb7fb8bfd2e86b667"
+    },
+    {
+      "bytes": 8145,
+      "executable": false,
+      "path": "registry/registry.json",
+      "sha256": "c62640bff40241e9bb7deac568a7ba65972fb931f22a182b9f4f07a61667810e"
+    },
+    {
+      "bytes": 65222,
+      "executable": true,
+      "path": "scripts/selectu5.py",
+      "sha256": "0bd95a0590042c54287715ee384d8c0021259e62afddedaf7bfee94c0983b156"
+    }
+  ],
+  "manifest": {
+    "access": "read",
+    "name": "xrpl-selectu5",
+    "version": "0.2.6"
+  },
+  "package_root": "xrpl-selectu5-0.2.6",
+  "rebuild_verified": false,
+  "schema": "selectu5-package-record/1",
+  "sha256_D": "2e82608a2981bc471188b10552ac2e5e8768672dfa4b9c02ef8290cdaa96ff83",
+  "source_commit_S": null
+}

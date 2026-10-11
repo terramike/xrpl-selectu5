@@ -33,3 +33,8 @@ See `REPAIR-REPORT.md` for the new tests and remaining release conditions.
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 Copyright 2026 Mike Mingucci.
+
+## Agent instructions
+
+Read [the shared agent instruction index](docs/agent-team/README.md) before the current enablement repair cycle.
+It links the independent audit, implementation plan, current Codex goal, evidence, and historical instructions.
