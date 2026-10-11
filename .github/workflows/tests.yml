@@ -1,0 +1,102 @@
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run repository tests
+        run: python -m unittest discover -s tests -v
+      - name: Run qualification harness
+        run: python scripts/qualify.py --source-commit 7db6c62951b552d15fa13cc09e1f083f073ca92a --qualification-commit ${{ github.sha }} --output-json qualification-evidence.json --output-md qualification-evidence.md
+      - name: Run Stage 3 actual-artifact qualification
+        run: python scripts/qualify_artifact.py --source-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --asset-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --package-root xrpl-selectu5-0.2.4 --version 0.2.4 --output-json stage3-evidence.json --output-md stage3-results.md
+      - name: Run Stage 3 actual update qualification
+        run: python scripts/qualify_update.py --from-version 0.2.4 --from-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --from-sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --from-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --to-version 0.2.5 --to-commit 6b942346ea6ffaa86f71aa80cf1e741822c2dc31 --to-sha256 06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d --to-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip --output-json stage3-update-evidence.json --output-md stage3-update-results.md
+      - name: Run Stage 3 actual interruption qualification
+        run: python scripts/qualify_interrupt.py --output-json stage3-interrupt-evidence.json --output-md stage3-interrupt-results.md
+      - name: Run bootstrap qualification (candidate installs published predecessor)
+        shell: bash
+        run: |
+          python scripts/package.py --source-root . --inventory docs/production/package-inventory.json --out candidate.zip --record candidate-record.json
+          python scripts/qualify_bootstrap.py --client-zip candidate.zip --candidate-record candidate-record.json --expect-client-version 0.2.6 --expect-client-root xrpl-selectu5-0.2.6 --expect-client-gate True --expect-installed-version 0.2.5 --expect-installed-gate False --output-json bootstrap-evidence.json
+      - name: Retain qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-${{ github.job }}-${{ github.sha }}
+          path: |
+            qualification-evidence.json
+            qualification-evidence.md
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain Stage 3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-evidence-${{ github.job }}
+          path: |
+            stage3-evidence.json
+            stage3-results.md
+            stage3-update-evidence.json
+            stage3-update-results.md
+            stage3-interrupt-evidence.json
+            stage3-interrupt-results.md
+            bootstrap-evidence.json
+            candidate-record.json
+          if: always()
+          if-no-files-found: ignore
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run repository tests
+        run: python -m unittest discover -s tests -v
+      - name: Run qualification harness
+        run: python scripts/qualify.py --source-commit 7db6c62951b552d15fa13cc09e1f083f073ca92a --qualification-commit ${{ github.sha }} --output-json qualification-evidence.json --output-md qualification-evidence.md
+      - name: Run Stage 3 actual-artifact qualification
+        run: python scripts/qualify_artifact.py --source-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --asset-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --package-root xrpl-selectu5-0.2.4 --version 0.2.4 --output-json stage3-evidence.json --output-md stage3-results.md
+      - name: Run Stage 3 actual update qualification
+        run: python scripts/qualify_update.py --from-version 0.2.4 --from-commit 5e157df7062e0528f04add18d4bc4f0cf2586b2e --from-sha256 98ccb8d50f2a66c105a0efa39aa337f234d11b135245ce5b0054156e74b3f5a2 --from-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.4/xrpl-selectu5-0.2.4.zip --to-version 0.2.5 --to-commit 6b942346ea6ffaa86f71aa80cf1e741822c2dc31 --to-sha256 06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d --to-url https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip --output-json stage3-update-evidence.json --output-md stage3-update-results.md
+      - name: Run Stage 3 actual interruption qualification
+        run: python scripts/qualify_interrupt.py --output-json stage3-interrupt-evidence.json --output-md stage3-interrupt-results.md
+      - name: Run bootstrap qualification (candidate installs published predecessor)
+        shell: bash
+        run: |
+          python scripts/package.py --source-root . --inventory docs/production/package-inventory.json --out candidate.zip --record candidate-record.json
+          python scripts/qualify_bootstrap.py --client-zip candidate.zip --candidate-record candidate-record.json --expect-client-version 0.2.6 --expect-client-root xrpl-selectu5-0.2.6 --expect-client-gate True --expect-installed-version 0.2.5 --expect-installed-gate False --output-json bootstrap-evidence.json
+      - name: Retain qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-${{ github.job }}-${{ github.sha }}
+          path: |
+            qualification-evidence.json
+            qualification-evidence.md
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Retain Stage 3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-evidence-${{ matrix.os || github.job }}
+          path: |
+            stage3-evidence.json
+            stage3-results.md
+            stage3-update-evidence.json
+            stage3-update-results.md
+            stage3-interrupt-evidence.json
+            stage3-interrupt-results.md
+            bootstrap-evidence.json
+            candidate-record.json
+          if: always()
+          if-no-files-found: ignore
