@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.6 — 2026-10-10
+
+Installer enablement for the Selectu5 self-install path (Mike's decision).
+
+- `INSTALL_ENABLED = True`: qualified catalog entries can be installed under the confirmed consent ceremony (permissions card + canonical plan shown first; the user's word for the exact entry and version; `--yes` + `--plan` encode that word).
+- The bundled catalog carries the qualified xrpl-selectu5 0.2.5 record (S/D/root/asset URL), the first installable entry. All other entries remain list-only.
+- Catalog browsing, update reporting, recovery, and the disabled-by-default stance for unqualified entries are unchanged.
+
 ## 0.2.5 — 2026-10-10
 
 Update-test package for Stage 3 qualification. Installer remains disabled.

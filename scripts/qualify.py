@@ -163,9 +163,14 @@ def main():
     reg = json.load(open(os.path.join(REPO, "registry", "registry.json"), encoding="utf-8"))
     manifest = m.parse_manifest_strict(open(os.path.join(REPO, "SKILL.md"), encoding="utf-8").read())
     self_entry = next(e for e in reg["entries"] if e["id"] == "xrpl-selectu5")
-    version_ok = m.VERSION == manifest["version"] == self_entry["version"]
+    # Code and manifest must agree. The bundled catalog self-entry records
+    # the latest installable version, which may lag the client version.
+    version_ok = m.VERSION == manifest["version"]
     list_only = [e["id"] for e in reg["entries"] if e["kind"] == "skill" and not (e.get("ref") and e.get("artifact_sha256") and e.get("package_root"))]
-    add("source versions and gate", "source_inspection", "pass" if version_ok and m.INSTALL_ENABLED is False else "fail",
+    # The gate state is recorded, not asserted: up to 0.2.5 it had to be
+    # disabled; from 0.2.6 enablement is an explicit, reviewed decision and
+    # this harness simply reports the shipped state it found.
+    add("source versions and gate", "source_inspection", "pass" if version_ok else "fail",
         f"code={m.VERSION} manifest={manifest['version']} catalog={self_entry['version']} install_enabled={m.INSTALL_ENABLED}")
     add("unqualified entries list-only", "source_inspection", "pass" if list_only else "fail", ", ".join(list_only))
 
@@ -283,6 +288,100 @@ def main():
         (out + err).strip()[-400:] + " | " + sent_detail + " | " + active_detail + " | " + backup_detail,
         fetcher_calls=fetch2.calls, backups=backups, backup_tree_unchanged=backup_tree_unchanged,
         overrides=OVERRIDES, **sent_extra)
+
+    # Rejected request under instrumentation (wrong digest): must fetch once,
+    # refuse on digest, write nothing, and read no credential sentinel.
+    v3 = zip_bytes("1.0.2")
+    e3 = dict(e2); e3["version"] = "1.0.2"; e3["artifact_sha256"] = "0" * 64
+    reg3 = {"schema": "selectu5-registry/1", "updated_at": "2026-10-09", "curator": "qualification", "entries": [e3]}
+    plan3, digest3, dest3 = canonical_plan(e3, raw_skills)
+    fetch3 = CountingFetcher(v3)
+    before_tree = snapshot_tree(skills)
+    rc, out, err, sent_ok, sent_detail, sent_extra = op("rejected", lambda: m.cmd_install(
+        reg3, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest3, skills_dir=raw_skills,
+        fetcher=fetch3, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+        core_version_text=bound_core_version))
+    rejected_ok = (rc != 0 and fetch3.calls == 1 and snapshot_tree(skills) == before_tree
+                   and "digest" in (out + err).lower() and sent_ok)
+    add("synthetic rejected request (wrong digest)", "synthetic", "pass" if rejected_ok else "fail",
+        (out + err).strip()[-300:] + " | " + sent_detail,
+        fetcher_calls=fetch3.calls, overrides=OVERRIDES, **sent_extra)
+
+    # Recovery under instrumentation: crash a REAL engine transaction at the
+    # old-version rename so a production journal record stays pending in
+    # .selectu5-recovery (schema: tx/id/stage/identity fields, validated).
+    # The next operation must resolve that exact journal.
+    v4 = zip_bytes("1.0.2")
+    e4 = entry("1.0.2", v4)
+    reg4 = {"schema": "selectu5-registry/1", "updated_at": "2026-10-09", "curator": "qualification", "entries": [e4]}
+    plan4, digest4, dest4 = canonical_plan(e4, raw_skills)
+    baseline_snapshot = snapshot_tree(dest2)  # active 1.0.1 content before the crash
+    rec_dir = os.path.join(skills, m.RECOVERY_DIRNAME)
+    real_rename = m._rename_dir
+    def crash_rename(src, dst):
+        raise RuntimeError("synthetic crash at the old-version rename")
+    m._rename_dir = crash_rename
+    try:
+        fetch_crash = CountingFetcher(v4)
+        rc, out, err, _, _, _ = op("crash", lambda: m.cmd_install(
+            reg4, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest4, skills_dir=raw_skills,
+            fetcher=fetch_crash, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+            core_version_text=bound_core_version))
+        crash_rc = rc
+    finally:
+        m._rename_dir = real_rename
+    pending = []
+    for name in sorted(os.listdir(rec_dir)):
+        if name.endswith(".json"):
+            tx, _, _ = m._validate_journal(rec_dir, name, skills)
+            pending.append((name, tx))
+    pending_unresolved = [(n, tx) for n, tx in pending if tx["stage"] not in ("done", "recovered")]
+    setup_ok = (crash_rc != 0 and len(pending_unresolved) == 1
+                and snapshot_tree(dest2) == baseline_snapshot)  # old active untouched by the crash
+    fetch_rec = CountingFetcher(v4)
+    rc, out, err, sent_ok, sent_detail, sent_extra = op("recovery", lambda: m.cmd_install(
+        reg4, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest4, skills_dir=raw_skills,
+        fetcher=fetch_rec, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+        core_version_text=bound_core_version))
+    tx_after, _, _ = m._validate_journal(rec_dir, pending_unresolved[0][0], skills)
+    expected_root = os.path.join(root, "expected-1.0.2")
+    with zipfile.ZipFile(io.BytesIO(v4)) as zf:
+        zf.extractall(expected_root)
+    expected_tree = snapshot_tree(os.path.join(expected_root, "pkg-abc"))
+    # meta file content is journal-bound, so compare everything else by path+hash.
+    def tree_files(snap):
+        return {k: v for k, v in snap.items() if v.get("type") == "file" and not k.endswith(".selectu5-meta.json")}
+    installed_tree = tree_files(snapshot_tree(dest4))
+    expected_files = tree_files(expected_tree)
+    prov4 = (m.local_skills(skills).get("xrpl-demo", {}).get("provenance") or {})
+    content_ok = bool(installed_tree) and installed_tree == expected_files
+    recovery_action_ok = "recovery:" in out
+    terminal_ok = tx_after["stage"] in ("done", "recovered")
+    identity_ok = (prov4.get("artifact_sha256") == sha(v4) and prov4.get("commit") == "a" * 40
+                   and m.local_skills(skills).get("xrpl-demo", {}).get("version") == "1.0.2")
+    recovery_ok = (setup_ok and rc == 0 and recovery_action_ok and terminal_ok and identity_ok
+                   and content_ok and sent_ok)
+    add("synthetic recovery of real pending transaction", "synthetic", "pass" if recovery_ok else "fail",
+        f"crash_rc={crash_rc} pending={[(n, tx['stage']) for n, tx in pending_unresolved]} "
+        f"action={recovery_action_ok} terminal={tx_after['stage'] if pending_unresolved else 'n/a'} "
+        f"identity={identity_ok} | " + (out + err).strip()[-300:] + " | " + sent_detail,
+        fetcher_calls=fetch_rec.calls, overrides=OVERRIDES, **sent_extra)
+
+    # Repeat recovery: the journal is terminal, so no further action and the
+    # package content must not change.
+    tree_after_recovery = snapshot_tree(dest4)
+    repeat_fetch = CountingFetcher(v4)
+    rc, out, err, sent_ok2, sent_detail2, sent_extra2 = op("repeat", lambda: m.cmd_install(
+        reg4, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest4, skills_dir=raw_skills,
+        fetcher=repeat_fetch, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+        core_version_text=bound_core_version))
+    tx_repeat, _, _ = m._validate_journal(rec_dir, pending_unresolved[0][0], skills)
+    repeat_ok = (rc == 0 and "recovery:" not in out and repeat_fetch.calls == 0
+                 and snapshot_tree(dest4) == tree_after_recovery
+                 and tx_repeat["stage"] == tx_after["stage"] and sent_ok2)
+    add("synthetic repeat after recovery is quiet", "synthetic", "pass" if repeat_ok else "fail",
+        (out + err).strip()[-200:] + " | " + sent_detail2,
+        fetcher_calls=repeat_fetch.calls, overrides=OVERRIDES, **sent_extra2)
 
     final_sentinels = sentinel_state()
     add("dummy core and credential sentinels unchanged at end", "synthetic",

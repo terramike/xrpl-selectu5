@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""xrpl-selectu5 0.2.5 — Selectu5, the XRPL Muse skill app store.
+"""xrpl-selectu5 0.2.6 — Selectu5, the XRPL Muse skill app store.
 
 Companion skill. Read-only toward the core: it reads a curated registry
 and the version frontmatter of local skills. Installs happen only with
@@ -24,10 +24,10 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-VERSION = "0.2.5"
+VERSION = "0.2.6"
 # Audit repair gate (2026-10-09): real installation stays disabled until
 # the acceptance criteria in the audit report pass. Dry-run cards stay on.
-INSTALL_ENABLED = False
+INSTALL_ENABLED = True  # Enabled by Mike's enablement decision for 0.2.6; consent ceremony still required for every install.
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL_REGISTRY = os.path.join(SKILL_DIR, "registry", "registry.json")
 REMOTE_REGISTRY = "https://raw.githubusercontent.com/terramike/xrpl-selectu5/main/registry/registry.json"
@@ -1273,7 +1273,8 @@ def fetch_distribution(e):
 
 
 def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None, skills_dir=None,
-                fetcher=None, install_enabled=None, trusted_catalog=None, core_version_text=None):
+                fetcher=None, install_enabled=None, trusted_catalog=None, core_version_text=None,
+                offline=False):
     e = get_entry(reg, entry_id)
     if not e:
         print(f"xrpl-selectu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
@@ -1306,9 +1307,15 @@ def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None, skills
     if plan_arg and plan_arg != plan_digest:
         print("\nRefused: --plan does not match the plan shown. Review the plan above and approve again.", file=sys.stderr)
         return 1
+    trust_now = catalog_trust(source) if trusted_catalog is None else trusted_catalog
     if not yes_version:
         print(f"\nDry run — nothing installed. To install this exact version, the user gives the word, then run:")
-        print(f"  selectu5.py install {e['id']} --yes {e['version']} --plan {plan_digest}")
+        if trust_now == TRUSTED_INSTALL_SOURCE:
+            real_cmd = f"  selectu5.py{' --offline' if offline else ''} install {e['id']} --yes {e['version']} --plan {plan_digest}"
+            print(real_cmd)
+        else:
+            print("  (This catalog is browse-only. A real installation requires the locally reviewed")
+            print("  catalog; re-run this command with --offline, review the same plan, and approve again.)")
         return 0
     if yes_version != e["version"]:
         print(f"\nRefused: --yes {yes_version} does not match registry version {e['version']}. Nothing installed.", file=sys.stderr)
@@ -1318,7 +1325,7 @@ def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None, skills
         return 1
     enabled = INSTALL_ENABLED if install_enabled is None else install_enabled
     if not enabled:
-        print("\nReal installation is disabled during the Selectu5 audit repair. "
+        print("\nReal installation is disabled in this build. "
               "The card above stays available as a dry run. Nothing was installed.", file=sys.stderr)
         return 2
     trust = catalog_trust(source) if trusted_catalog is None else trusted_catalog
@@ -1403,7 +1410,7 @@ def main():
     if args.cmd == "check-updates":
         return cmd_check(reg, local, source)
     if args.cmd == "install":
-        return cmd_install(reg, local, args.id, args.yes, source, args.plan)
+        return cmd_install(reg, local, args.id, args.yes, source, args.plan, offline=args.offline)
     return 0
 
 
