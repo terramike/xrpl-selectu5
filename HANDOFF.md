@@ -125,3 +125,36 @@ CI: https://github.com/terramike/xrpl-selectu5/actions/runs/38042700935 and http
 Earlier head results remain historical evidence. Stage 3 has passed; PR #5 still requires review and merge.
 Review host consent, catalog authority, and credential-read evidence before a separate installer enablement decision.
 Unchanged sentinel hashes do not establish zero reads. The shipped installer remains disabled.
+
+## 2026-10-11 — Change audit A01–A04 addressed (Alfred)
+
+SOL 6.2 medium's change audit (`docs/agent-team/` on
+`codex/selectu5-shared-audit-2026-10-11`) reviewed PR #11 and PR #12.
+Four findings, all fixed on the PR #12 branch:
+
+- A01: the recovery fixture crashed a hand-written journal in the wrong
+  schema; it now crashes a real engine transaction at the old-version
+  rename, leaving a production-schema journal in `.selectu5-recovery`,
+  and asserts a real recovery action, terminal journal stage, restored
+  content/provenance, and zero dummy credential reads. Regression: a
+  plain fresh install reports no recovery action, so the check cannot
+  pass without real recovery.
+- A02: the dry run prints the real install command with `--offline`
+  when the bundled catalog holds authority; browse-only dry runs
+  suggest `--offline` instead of an install command. Tests execute the
+  printed command and the refusal paths.
+- A03: the bootstrap harness asserts exact candidate version/root/gate,
+  complete predecessor identity, installed-gate assertion, controlled
+  environment, and a zero-mutation no-op; CI retains the bootstrap
+  JSON and candidate record on both platforms.
+- A04: `BOOTSTRAP-AND-UPDATE.md` revision 2 scopes the qualified first
+  hop (0.2.6 external client installs disabled 0.2.5); future hops are
+  blocked until their artifacts exist.
+
+Final PR #12 head: `2212e27ba2c68520f758102b8e4975e8d6fdea2a`.
+CI: push and pull_request runs green on Linux and Windows, including
+the bootstrap step on both platforms.
+
+Unresolved decisions (Mike's): release model (manual external-client
+per release vs separate signed-catalog design); enablement approval;
+publication. Nothing merged or published.
