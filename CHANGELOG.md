@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0 — 2026-10-11
+
+Menu mode (Mike's decision). Selectu5 is now a menu of links and an update checker; it installs nothing.
+
+- Removed the entire installer engine (install plans, staging, journals, recovery, predecessor chains, consent ceremony). The 0.2.x engine is preserved on the `v1-installer` branch for the eventual v3 installer story.
+- Registry drops install-authority fields (`ref`, `artifact_sha256`, `package_root`, `distribution`). Validation is identity and text-safety only.
+- `check-updates` is registry-only and report-only; the core skill is notice-only with the manual update path.
+- Clavi5 showcase entry removed (not yet); Visu5 stays.
+- Kept from 0.2.x: the curated registry format, deterministic packaging, and the prep → approve → publish release flow.
+
+
 ## 0.2.6 — 2026-10-10
 
 Installer enablement for the Selectu5 self-install path (Mike's decision).

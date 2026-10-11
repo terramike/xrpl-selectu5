@@ -1,3 +1,5 @@
+> **Superseded by v2.** This spec describes the 0.2.x installer line, parked on the `v1-installer` branch. The current design is `docs/production/SELECTU5-V2-SPEC.md`.
+
 # SPEC — xrpl-selectu5 (Selectu5)
 
 Package version: 0.2.6 (2026-10-10, installer enabled for qualified entries under the consent ceremony)
