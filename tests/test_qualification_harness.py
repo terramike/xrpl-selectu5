@@ -69,3 +69,39 @@ class TestQualificationHarness(unittest.TestCase):
         self.assertEqual(rc, 1)
         check = next(c for c in evidence["checks"] if c["name"] == "synthetic update with backup")
         self.assertEqual(check["status"], "fail")
+
+    def test_fresh_install_cannot_satisfy_recovery_check(self):
+        """Regression (A01): without a pending production journal, no
+        recovery action is reported, so the recovery check's action
+        assertion cannot pass on a plain fresh install."""
+        spec = importlib.util.spec_from_file_location(
+            "selectu5_under_test", Path(__file__).resolve().parents[1] / "scripts" / "selectu5.py")
+        sel = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sel)
+        with tempfile.TemporaryDirectory() as d:
+            skills = os.path.join(d, "skills"); os.makedirs(skills)
+            data = q.zip_bytes("1.0.0")
+            e = q.entry("1.0.0", data)
+            reg = {"schema": "selectu5-registry/1", "updated_at": "2026-10-09",
+                   "curator": "qualification", "entries": [e]}
+            plan, digest, _ = q.canonical_plan(e, skills)
+            fetch = q.CountingFetcher(data)
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = sel.cmd_install(reg, {}, "xrpl-demo", "1.0.0", sel.LOCAL_REGISTRY,
+                                     digest, skills_dir=skills, fetcher=fetch,
+                                     install_enabled=True,
+                                     trusted_catalog=sel.TRUSTED_INSTALL_SOURCE,
+                                     core_version_text="0.14.1")
+            out = buf.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertNotIn("recovery:", out)
+            rec_dir = os.path.join(skills, sel.RECOVERY_DIRNAME)
+            pending = []
+            if os.path.isdir(rec_dir):
+                for name in os.listdir(rec_dir):
+                    if name.endswith(".json"):
+                        tx, _, _ = sel._validate_journal(rec_dir, name, skills)
+                        if tx["stage"] not in ("done", "recovered"):
+                            pending.append(name)
+            self.assertEqual(pending, [])

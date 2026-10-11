@@ -307,32 +307,81 @@ def main():
         (out + err).strip()[-300:] + " | " + sent_detail,
         fetcher_calls=fetch3.calls, overrides=OVERRIDES, **sent_extra)
 
-    # Recovery under instrumentation: crash journal after target -> backup,
-    # then the next operation must recover and read no credential sentinel.
-    journal_dir = os.path.join(skills, ".selectu5-journal")
-    tx = "tx-qualify01"
-    bak_rec = os.path.join(skills, f"xrpl-demo.bak-{tx}")
-    os.makedirs(journal_dir, exist_ok=True)
-    journal = {"tx": tx, "state": "verified", "entry": "xrpl-demo", "version": "1.0.1",
-               "target": dest2, "staging": os.path.join(skills, f".selectu5-staging-{tx}"),
-               "backup": bak_rec, "had_existing": True}
-    m._write_journal(journal_dir, journal)
-    journal["state"] = "placing"
-    m._write_journal(journal_dir, journal)
-    os.replace(dest2, bak_rec)
-    journal["state"] = "published"
-    m._write_journal(journal_dir, journal)
-    fetch_rec = CountingFetcher(v2)
-    plan_r, digest_r, _ = canonical_plan(e2, raw_skills)
+    # Recovery under instrumentation: crash a REAL engine transaction at the
+    # old-version rename so a production journal record stays pending in
+    # .selectu5-recovery (schema: tx/id/stage/identity fields, validated).
+    # The next operation must resolve that exact journal.
+    v4 = zip_bytes("1.0.2")
+    e4 = entry("1.0.2", v4)
+    reg4 = {"schema": "selectu5-registry/1", "updated_at": "2026-10-09", "curator": "qualification", "entries": [e4]}
+    plan4, digest4, dest4 = canonical_plan(e4, raw_skills)
+    baseline_snapshot = snapshot_tree(dest2)  # active 1.0.1 content before the crash
+    rec_dir = os.path.join(skills, m.RECOVERY_DIRNAME)
+    real_rename = m._rename_dir
+    def crash_rename(src, dst):
+        raise RuntimeError("synthetic crash at the old-version rename")
+    m._rename_dir = crash_rename
+    try:
+        fetch_crash = CountingFetcher(v4)
+        rc, out, err, _, _, _ = op("crash", lambda: m.cmd_install(
+            reg4, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest4, skills_dir=raw_skills,
+            fetcher=fetch_crash, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+            core_version_text=bound_core_version))
+        crash_rc = rc
+    finally:
+        m._rename_dir = real_rename
+    pending = []
+    for name in sorted(os.listdir(rec_dir)):
+        if name.endswith(".json"):
+            tx, _, _ = m._validate_journal(rec_dir, name, skills)
+            pending.append((name, tx))
+    pending_unresolved = [(n, tx) for n, tx in pending if tx["stage"] not in ("done", "recovered")]
+    setup_ok = (crash_rc != 0 and len(pending_unresolved) == 1
+                and snapshot_tree(dest2) == baseline_snapshot)  # old active untouched by the crash
+    fetch_rec = CountingFetcher(v4)
     rc, out, err, sent_ok, sent_detail, sent_extra = op("recovery", lambda: m.cmd_install(
-        reg2, {}, "xrpl-demo", "1.0.1", m.LOCAL_REGISTRY, digest_r, skills_dir=raw_skills,
+        reg4, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest4, skills_dir=raw_skills,
         fetcher=fetch_rec, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
         core_version_text=bound_core_version))
-    active_after = m.local_skills(skills).get("xrpl-demo", {}).get("version")
-    recovery_ok = rc == 0 and active_after == "1.0.1" and sent_ok
-    add("synthetic recovery after interrupted publish", "synthetic", "pass" if recovery_ok else "fail",
-        (out + err).strip()[-300:] + " | " + sent_detail,
+    tx_after, _, _ = m._validate_journal(rec_dir, pending_unresolved[0][0], skills)
+    expected_root = os.path.join(root, "expected-1.0.2")
+    with zipfile.ZipFile(io.BytesIO(v4)) as zf:
+        zf.extractall(expected_root)
+    expected_tree = snapshot_tree(os.path.join(expected_root, "pkg-abc"))
+    # meta file content is journal-bound, so compare everything else by path+hash.
+    def tree_files(snap):
+        return {k: v for k, v in snap.items() if v.get("type") == "file" and not k.endswith(".selectu5-meta.json")}
+    installed_tree = tree_files(snapshot_tree(dest4))
+    expected_files = tree_files(expected_tree)
+    prov4 = (m.local_skills(skills).get("xrpl-demo", {}).get("provenance") or {})
+    content_ok = bool(installed_tree) and installed_tree == expected_files
+    recovery_action_ok = "recovery:" in out
+    terminal_ok = tx_after["stage"] in ("done", "recovered")
+    identity_ok = (prov4.get("artifact_sha256") == sha(v4) and prov4.get("commit") == "a" * 40
+                   and m.local_skills(skills).get("xrpl-demo", {}).get("version") == "1.0.2")
+    recovery_ok = (setup_ok and rc == 0 and recovery_action_ok and terminal_ok and identity_ok
+                   and content_ok and sent_ok)
+    add("synthetic recovery of real pending transaction", "synthetic", "pass" if recovery_ok else "fail",
+        f"crash_rc={crash_rc} pending={[(n, tx['stage']) for n, tx in pending_unresolved]} "
+        f"action={recovery_action_ok} terminal={tx_after['stage'] if pending_unresolved else 'n/a'} "
+        f"identity={identity_ok} | " + (out + err).strip()[-300:] + " | " + sent_detail,
         fetcher_calls=fetch_rec.calls, overrides=OVERRIDES, **sent_extra)
+
+    # Repeat recovery: the journal is terminal, so no further action and the
+    # package content must not change.
+    tree_after_recovery = snapshot_tree(dest4)
+    repeat_fetch = CountingFetcher(v4)
+    rc, out, err, sent_ok2, sent_detail2, sent_extra2 = op("repeat", lambda: m.cmd_install(
+        reg4, m.local_skills(skills), "xrpl-demo", "1.0.2", m.LOCAL_REGISTRY, digest4, skills_dir=raw_skills,
+        fetcher=repeat_fetch, install_enabled=True, trusted_catalog=m.TRUSTED_INSTALL_SOURCE,
+        core_version_text=bound_core_version))
+    tx_repeat, _, _ = m._validate_journal(rec_dir, pending_unresolved[0][0], skills)
+    repeat_ok = (rc == 0 and "recovery:" not in out and repeat_fetch.calls == 0
+                 and snapshot_tree(dest4) == tree_after_recovery
+                 and tx_repeat["stage"] == tx_after["stage"] and sent_ok2)
+    add("synthetic repeat after recovery is quiet", "synthetic", "pass" if repeat_ok else "fail",
+        (out + err).strip()[-200:] + " | " + sent_detail2,
+        fetcher_calls=repeat_fetch.calls, overrides=OVERRIDES, **sent_extra2)
 
     final_sentinels = sentinel_state()
     add("dummy core and credential sentinels unchanged at end", "synthetic",

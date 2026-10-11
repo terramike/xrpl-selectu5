@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           python scripts/package.py --source-root . --inventory docs/production/package-inventory.json --out candidate.zip --record candidate-record.json
-          python scripts/qualify_bootstrap.py --client-zip candidate.zip --expect-install-version 0.2.5 --output-json bootstrap-evidence.json
+          python scripts/qualify_bootstrap.py --client-zip candidate.zip --candidate-record candidate-record.json --expect-client-version 0.2.6 --expect-client-root xrpl-selectu5-0.2.6 --expect-client-gate True --expect-installed-version 0.2.5 --expect-installed-gate False --output-json bootstrap-evidence.json
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -47,6 +47,9 @@ jobs:
             stage3-update-results.md
             stage3-interrupt-evidence.json
             stage3-interrupt-results.md
+            bootstrap-evidence.json
+            candidate-record.json
+          if: always()
           if-no-files-found: ignore
   windows:
     runs-on: windows-latest
@@ -69,7 +72,7 @@ jobs:
         shell: bash
         run: |
           python scripts/package.py --source-root . --inventory docs/production/package-inventory.json --out candidate.zip --record candidate-record.json
-          python scripts/qualify_bootstrap.py --client-zip candidate.zip --expect-install-version 0.2.5 --output-json bootstrap-evidence.json
+          python scripts/qualify_bootstrap.py --client-zip candidate.zip --candidate-record candidate-record.json --expect-client-version 0.2.6 --expect-client-root xrpl-selectu5-0.2.6 --expect-client-gate True --expect-installed-version 0.2.5 --expect-installed-gate False --output-json bootstrap-evidence.json
       - name: Retain qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,4 +96,7 @@ jobs:
             stage3-update-results.md
             stage3-interrupt-evidence.json
             stage3-interrupt-results.md
+            bootstrap-evidence.json
+            candidate-record.json
+          if: always()
           if-no-files-found: ignore

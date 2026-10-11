@@ -1,4 +1,4 @@
-import io, json, os, re, subprocess, sys, tempfile, unittest, zipfile
+import contextlib, io, json, os, re, subprocess, sys, tempfile, unittest, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.join(HERE, "..")
 SCRIPT = os.path.join(SKILL, "scripts", "selectu5.py")
@@ -53,24 +53,50 @@ class TestSelectu5(unittest.TestCase):
         self.assertIn("does not install the core", r.stdout)
 
     def test_install_dry_run(self):
-        r = run("install", "xrpl-community-shows"); self.assertEqual(r.returncode, 0)
-        self.assertIn("Dry run", r.stdout); self.assertIn("--yes 0.2.2", r.stdout)
+        r = run("--offline", "install", "xrpl-selectu5"); self.assertEqual(r.returncode, 0)
+        self.assertIn("Dry run", r.stdout); self.assertIn("--yes 0.2.5", r.stdout)
+        self.assertIn("--offline install", r.stdout)
 
     def test_install_yes_must_match(self):
         r = run("install", "xrpl-community-shows", "--yes", "9.9.9"); self.assertEqual(r.returncode, 1)
 
     def test_install_refused_from_unreviewed_catalog(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "selectu5_under_test", os.path.join(SKILL, "scripts", "selectu5.py"))
+        sel = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sel)
         with tempfile.TemporaryDirectory() as d:
-            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40)])
+            reg_path = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40)])
             skills = os.path.join(d, "skills"); os.makedirs(skills)
-            dry = run("install", "xrpl-demo", env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
+            dry = run("install", "xrpl-demo", env={"SELECTU5_REGISTRY": reg_path, "SELECTU5_SKILLS_DIR": skills})
             self.assertEqual(dry.returncode, 0, dry.stderr)
-            digest = re.search(r"--plan ([0-9a-f]{64})", dry.stdout).group(1)
-            r = run("install", "xrpl-demo", "--yes", "1.0.0", "--plan", digest,
-                    env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
-            self.assertEqual(r.returncode, 1)
-            self.assertIn("browse-only", r.stderr)
+            self.assertIn("browse-only", dry.stdout)
+            self.assertNotIn("--yes", dry.stdout)
+            calls = {"n": 0}
+            class F:
+                def __call__(self, e):
+                    calls["n"] += 1
+                    raise AssertionError("fetch must not run")
+            e = entry("xrpl-demo", "1.0.0", ref="a" * 40)
+            destination = sel.validate_destination(skills, e["id"])
+            plan, digest = sel.build_plan(e, destination)
+            buf = io.StringIO()
+            with contextlib.redirect_stderr(buf):
+                rc = sel.cmd_install({"entries": [e]}, {}, "xrpl-demo", "1.0.0",
+                                     "test-env-catalog", digest, skills_dir=skills, fetcher=F(),
+                                     install_enabled=True, trusted_catalog="browse-only",
+                                     core_version_text="0.14.1")
+            self.assertEqual(rc, 1)
+            self.assertIn("browse-only", buf.getvalue())
+            self.assertEqual(calls["n"], 0)
             self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-demo")))
+
+    @staticmethod
+    def _entry(e, d):
+        import json
+        reg = json.load(open(e) if isinstance(e, str) else None) if False else None
+        return e
 
     def test_check_updates_offline(self):
         with tempfile.TemporaryDirectory() as d:
@@ -736,3 +762,40 @@ with selectu5.skills_lock({d!r}): selectu5.recover_transactions({d!r})
                 m.cmd_check(reg, local, "test")
             self.assertIn("provenance difference", buf.getvalue())
             self.assertNotIn("Everything listed is installed and current", buf.getvalue())
+
+    def test_printed_command_preserves_offline_catalog_authority(self):
+        """A02: the displayed install command must use the catalog authority
+        reviewed in the dry run (--offline). Execute the exact printed
+        command with a mutated plan digest: it must refuse before fetching."""
+        with tempfile.TemporaryDirectory() as d:
+            skills = os.path.join(d, "skills"); os.makedirs(skills)
+            core = os.path.join(skills, "xrpl-muse-skill"); os.makedirs(core)
+            with open(os.path.join(core, "SKILL.md"), "w") as fh:
+                fh.write("---\nname: xrpl-muse-skill\ndescription: dummy\nversion: 0.14.1\n---\n")
+            env = {"SELECTU5_REGISTRY": "", "SELECTU5_SKILLS_DIR": skills}
+            dry = run("--offline", "install", "xrpl-selectu5", env=env)
+            self.assertEqual(dry.returncode, 0, dry.stderr)
+            m = re.search(r"selectu5\.py (--offline )?install (\S+) --yes (\S+) --plan ([0-9a-f]{64})", dry.stdout)
+            self.assertIsNotNone(m, dry.stdout[-400:])
+            self.assertEqual(m.group(1), "--offline ", dry.stdout[-400:])
+            cmd_args = ["--offline", "install", m.group(2), "--yes", m.group(3), "--plan", "1" * 64]
+            r = run(*cmd_args, env=env)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("--plan does not match", r.stderr)
+            self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-selectu5")))
+            r2 = run("--offline", "install", m.group(2), "--yes", "9.9.9", "--plan", m.group(4), env=env)
+            self.assertEqual(r2.returncode, 1)
+            self.assertIn("does not match registry version", r2.stderr)
+            self.assertFalse(os.path.exists(os.path.join(skills, "xrpl-selectu5")))
+
+    def test_browse_only_dry_run_shows_no_install_command(self):
+        """A02: remote/environment catalog data never gains install authority:
+        a browse-only dry run suggests --offline instead of an install command."""
+        with tempfile.TemporaryDirectory() as d:
+            reg = reg_with(d, [entry("xrpl-demo", "1.0.0", ref="a" * 40)])
+            skills = os.path.join(d, "skills"); os.makedirs(skills)
+            dry = run("install", "xrpl-demo", env={"SELECTU5_REGISTRY": reg, "SELECTU5_SKILLS_DIR": skills})
+            self.assertEqual(dry.returncode, 0, dry.stderr)
+            self.assertNotIn("--yes", dry.stdout)
+            self.assertIn("browse-only", dry.stdout)
+            self.assertIn("--offline", dry.stdout)

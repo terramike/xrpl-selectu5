@@ -1,7 +1,7 @@
 # SPEC — xrpl-selectu5 (Selectu5)
 
 Package version: 0.2.6 (2026-10-10, installer enabled for qualified entries under the consent ceremony)
-Status: Decisions locked by Mike 2026-10-09. Build in a private repo. Production qualification is complete for the Selectu5 self-install path; the installer is enabled for qualified entries only.
+Status: Decisions locked by Mike 2026-10-09. Build in a private repo. Production qualification is in progress for the Selectu5 self-install path; the 0.2.6 enablement candidate enables installation for qualified entries under the consent ceremony. Shipped enablement awaits Mike's separate approval.
 Type: Companion skill. The core xrpl-muse skill is not changed.
 
 ## 1. Purpose

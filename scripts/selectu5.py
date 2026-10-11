@@ -1273,7 +1273,8 @@ def fetch_distribution(e):
 
 
 def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None, skills_dir=None,
-                fetcher=None, install_enabled=None, trusted_catalog=None, core_version_text=None):
+                fetcher=None, install_enabled=None, trusted_catalog=None, core_version_text=None,
+                offline=False):
     e = get_entry(reg, entry_id)
     if not e:
         print(f"xrpl-selectu5 {VERSION}: no registry entry '{entry_id}'. Run: list", file=sys.stderr)
@@ -1306,9 +1307,15 @@ def cmd_install(reg, local, entry_id, yes_version, source, plan_arg=None, skills
     if plan_arg and plan_arg != plan_digest:
         print("\nRefused: --plan does not match the plan shown. Review the plan above and approve again.", file=sys.stderr)
         return 1
+    trust_now = catalog_trust(source) if trusted_catalog is None else trusted_catalog
     if not yes_version:
         print(f"\nDry run — nothing installed. To install this exact version, the user gives the word, then run:")
-        print(f"  selectu5.py install {e['id']} --yes {e['version']} --plan {plan_digest}")
+        if trust_now == TRUSTED_INSTALL_SOURCE:
+            real_cmd = f"  selectu5.py{' --offline' if offline else ''} install {e['id']} --yes {e['version']} --plan {plan_digest}"
+            print(real_cmd)
+        else:
+            print("  (This catalog is browse-only. A real installation requires the locally reviewed")
+            print("  catalog; re-run this command with --offline, review the same plan, and approve again.)")
         return 0
     if yes_version != e["version"]:
         print(f"\nRefused: --yes {yes_version} does not match registry version {e['version']}. Nothing installed.", file=sys.stderr)
@@ -1403,7 +1410,7 @@ def main():
     if args.cmd == "check-updates":
         return cmd_check(reg, local, source)
     if args.cmd == "install":
-        return cmd_install(reg, local, args.id, args.yes, source, args.plan)
+        return cmd_install(reg, local, args.id, args.yes, source, args.plan, offline=args.offline)
     return 0
 
 
