@@ -1,19 +1,15 @@
 {
-  "schema": "selectu5-registry/1",
-  "updated_at": "2026-10-10",
-  "curator": "terramike",
+  "curator": "Mike Mingucci",
   "entries": [
     {
-      "id": "xrpl-muse-skill",
-      "name": "XRPL Muse Skill (core)",
-      "kind": "core",
-      "version": "0.14.1",
-      "core_version": null,
       "access": "propose",
       "author": "terramike",
-      "purpose": "Trade and explore the XRP Ledger from chat: build proposals, review the exact terms, sign only after human approval of the exact hash.",
-      "repo": "https://github.com/terramike/xrpl-muse-skill",
-      "install": "git clone the repo and run install.sh; fresh installs start read-only.",
+      "core_version": null,
+      "id": "xrpl-muse-skill",
+      "install": "Get it from the repo and follow its install instructions. Selectu5 never installs or updates the core skill.",
+      "kind": "core",
+      "name": "XRPL Muse Skill (core)",
+      "notes": "Core updates are notices in Selectu5, never silent installs. A core release keeps HOL Guard parity before it ships.",
       "permissions": {
         "commands": [
           "xrpl-trade (read and propose commands)",
@@ -27,22 +23,19 @@
         "network": "XRPL nodes and named data sources (xrpl.to, DefiLlama).",
         "signs": "Only xrpl-sign, only with explicit human approval of an exact proposal hash."
       },
-      "notes": "Core updates are notices in Selectu5, never silent installs. A core release keeps HOL Guard parity before it ships.",
-      "ref": "v0.14.1",
-      "artifact_sha256": null,
-      "package_root": null
+      "purpose": "Trade and explore the XRP Ledger from chat: build proposals, review the exact terms, sign only after human approval of the exact hash.",
+      "repo": "https://github.com/terramike/xrpl-muse-skill",
+      "version": "0.14.1"
     },
     {
-      "id": "xrpl-view-export",
-      "name": "XRPL View Export",
-      "kind": "skill",
-      "version": "0.1.0",
-      "core_version": ">=0.14.1",
       "access": "read",
       "author": "terramike",
-      "purpose": "Make one xrpl-view-export.json file from read-only core commands so you can open your skill dashboard at view.terramike.com. Nothing is uploaded.",
-      "repo": "https://github.com/terramike/xrpl-view-export",
+      "core_version": ">=0.14.1",
+      "id": "xrpl-view-export",
       "install": "Installs into the Muse skills folder from its repo.",
+      "kind": "skill",
+      "name": "XRPL View Export",
+      "notes": "Repo link to confirm at publish time; no pinned ref yet, so Selectu5 lists it but cannot install it. Manifest also needs an access field before it can pass strict install checks.",
       "permissions": {
         "commands": [
           "xrpl-trade balance",
@@ -59,22 +52,19 @@
         "network": "None. The export file never leaves the machine by itself.",
         "signs": "Never."
       },
-      "notes": "Repo link to confirm at publish time; no pinned ref yet, so Selectu5 lists it but cannot install it. Manifest also needs an access field before it can pass strict install checks.",
-      "ref": null,
-      "artifact_sha256": null,
-      "package_root": null
+      "purpose": "Make one xrpl-view-export.json file from read-only core commands so you can open your skill dashboard at view.terramike.com. Nothing is uploaded.",
+      "repo": "https://github.com/terramike/xrpl-view-export",
+      "version": "0.1.0"
     },
     {
-      "id": "xrpl-community-shows",
-      "name": "Community Shows",
-      "kind": "skill",
-      "version": "0.2.2",
-      "core_version": ">=0.14.1",
       "access": "read",
       "author": "terramike",
-      "purpose": "List upcoming XRPL community shows (X Spaces, podcasts, streams) in chat, and submit a new show or recurring series for listing. Known handles list at once; others wait for manual approval.",
-      "repo": "https://github.com/terramike/xrpl-community-shows",
+      "core_version": ">=0.14.1",
+      "id": "xrpl-community-shows",
       "install": "Installs into the Muse skills folder from its repo.",
+      "kind": "skill",
+      "name": "Community Shows",
+      "notes": "Companion repair merged to its main 2026-10-09 (v0.2.2, access: read, data/shows-fixture.json). Artifact digest not yet recorded; the fixed-artifact decision is pending, so this entry stays non-installable until the pre-release audit.",
       "permissions": {
         "commands": [
           "No core commands. Reads and submits shows only."
@@ -85,48 +75,19 @@
         "network": "https://shows-api.terramike.com (reads and show submissions).",
         "signs": "Never."
       },
-      "notes": "Companion repair merged to its main 2026-10-09 (v0.2.2, access: read, data/shows-fixture.json). Artifact digest not yet recorded; the fixed-artifact decision is pending, so this entry stays non-installable until the pre-release audit.",
-      "ref": "d0457fd53e1695a1b464bccc5391369eb7d5f7c3",
-      "artifact_sha256": null,
-      "package_root": null
+      "purpose": "List upcoming XRPL community shows (X Spaces, podcasts, streams) in chat, and submit a new show or recurring series for listing. Known handles list at once; others wait for manual approval.",
+      "repo": "https://github.com/terramike/xrpl-community-shows",
+      "version": "0.2.2"
     },
     {
-      "id": "clavi5",
-      "name": "Clavi5",
-      "kind": "showcase",
-      "version": "beta",
-      "core_version": null,
-      "access": "propose",
-      "author": "terramike",
-      "purpose": "Phone Face ID signing for XRPL payments: the agent proposes, your phone signs the exact transaction, no seeds near the agent. Testnet beta, invite-only.",
-      "repo": "https://drop.terramike.com",
-      "install": "Showcase \u2014 not a skill install. The next step is enrollment on the site.",
-      "permissions": {
-        "commands": [
-          "clavi5-beta CLI inside the core skill (init, propose, confirm, status)"
-        ],
-        "files": [
-          "No seed files. Signing key stays off the agent machine."
-        ],
-        "network": "drop.terramike.com approval service.",
-        "signs": "Only on your phone, after Face ID confirms the exact transaction. Mainnet stays off by default."
-      },
-      "notes": "Showcase entry: Selectu5 shows the card and the enroll link. It cannot enroll you.",
-      "ref": null,
-      "artifact_sha256": null,
-      "package_root": null
-    },
-    {
-      "id": "visu5",
-      "name": "Visu5 (Muse Board + XRPL View)",
-      "kind": "showcase",
-      "version": "v1",
-      "core_version": null,
       "access": "read",
       "author": "terramike",
-      "purpose": "The dash family: a mech suit for your AI agent. Muse Board shows a live snapshot of your world; XRPL View renders your skill export in the browser and vanishes when the tab closes.",
-      "repo": "https://view.terramike.com",
+      "core_version": null,
+      "id": "visu5",
       "install": "Showcase \u2014 not a skill install. Open the page; XRPL View needs an export file from xrpl-view-export.",
+      "kind": "showcase",
+      "name": "Visu5 (Muse Board + XRPL View)",
+      "notes": "Showcase entry: Selectu5 shows the card and the link. Board stays private by default.",
       "permissions": {
         "commands": [
           "None. The pages run nothing."
@@ -137,45 +98,34 @@
         "network": "Static pages. XRPL View makes zero network calls with file content.",
         "signs": "Never. The dash shows and asks; the ceremony stays in chat."
       },
-      "notes": "Showcase entry: Selectu5 shows the card and the link. Board stays private by default.",
-      "ref": null,
-      "artifact_sha256": null,
-      "package_root": null
+      "purpose": "The dash family: a mech suit for your AI agent. Muse Board shows a live snapshot of your world; XRPL View renders your skill export in the browser and vanishes when the tab closes.",
+      "repo": "https://view.terramike.com",
+      "version": "v1"
     },
     {
-      "id": "xrpl-selectu5",
-      "name": "Selectu5 (this store)",
-      "kind": "skill",
-      "version": "0.2.5",
-      "core_version": ">=0.14.1",
       "access": "read",
       "author": "terramike",
-      "purpose": "Browse the curated add-on registry, see purpose and permissions before any install, and check for updates to add-ons and the core skill.",
-      "repo": "https://github.com/terramike/xrpl-selectu5",
-      "install": "Installs into the Muse skills folder from its repo (private while building).",
+      "core_version": ">=0.14.1",
+      "id": "xrpl-selectu5",
+      "install": "Download the release ZIP and unzip it into your Muse skills folder.",
+      "kind": "skill",
+      "name": "Selectu5 (this store)",
       "permissions": {
         "commands": [
-          "No core commands. Catalog, inventory, update reports, and the gated installer only."
+          "No core commands. The menu lists, shows, and version-checks only."
         ],
         "files": [
-          "registry/registry.json",
-          "SKILL.md frontmatter of local xrpl-* skills (name and version only)",
-          "Bounded .selectu5-meta.json provenance in local skills",
-          "During an approved install only: lock, staging, journal, metadata, package, and backup writes inside the skills folder."
+          "registry/registry.json (bundled, read)",
+          "SKILL.md frontmatter of local xrpl-* skills (name and version only)"
         ],
         "network": "Reads the catalog from GitHub. Distribution downloads use approved GitHub endpoints only during an approved install.",
         "signs": "Never."
       },
-      "notes": "Version 0.2.5 qualified 2026-10-10: source commit 6b942346, release asset xrpl-selectu5-0.2.5.zip SHA-256 06b10f88. Actual retrieval, installation, update, interruption recovery pass on Linux. Installation remains disabled by the shipped gate.",
-      "ref": "6b942346ea6ffaa86f71aa80cf1e741822c2dc31",
-      "artifact_sha256": "06b10f880d48cb426ddfddc9088fd40d04ace1372324756f2575b9a37a63ea2d",
-      "package_root": "xrpl-selectu5-0.2.5",
-      "distribution": {
-        "type": "github_release_asset",
-        "source_commit": "6b942346ea6ffaa86f71aa80cf1e741822c2dc31",
-        "asset_url": "https://github.com/terramike/xrpl-selectu5/releases/download/v0.2.5/xrpl-selectu5-0.2.5.zip",
-        "asset_name": "xrpl-selectu5-0.2.5.zip"
-      }
+      "purpose": "Browse the curated XRPL Muse skill family: see each skill's purpose and permissions, and check installed versions against the menu. Selectu5 installs nothing.",
+      "repo": "https://github.com/terramike/xrpl-selectu5",
+      "version": "2.0.0"
     }
-  ]
+  ],
+  "schema": "selectu5-registry/1",
+  "updated_at": "2026-10-11"
 }
