@@ -70,7 +70,7 @@ jobs:
           A: ${{ inputs.asset_name }}
           D: ${{ inputs.approved_sha256 }}
           S: ${{ inputs.source_commit }}
-          GH_TOKEN: <redacted>
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           test -f "dist/$A"
           ACTUAL=$(sha256sum "dist/$A" | cut -d' ' -f1)
