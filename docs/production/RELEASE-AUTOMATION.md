@@ -30,7 +30,8 @@ only release workflow with `contents: write`. The job:
 
 1. Downloads the retained candidate from the prep run — it never rebuilds.
 2. Verifies the retained bytes hash to the approved `D` and that the
-   shipped installer gate is still disabled in those bytes.
+   shipped installer gate matches the approved source commit `S` (the
+   0.2.5-era "still disabled" wording was retired with enablement).
 3. Refuses to run if the tag or release already exists; it never
    overwrites an asset (no `--clobber`).
 4. Creates a draft release targeted at `S`, attaches the ZIP, the package

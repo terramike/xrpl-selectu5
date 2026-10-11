@@ -69,22 +69,31 @@ jobs:
         env:
           A: ${{ inputs.asset_name }}
           D: ${{ inputs.approved_sha256 }}
+          S: ${{ inputs.source_commit }}
+          GH_TOKEN: <redacted>
         run: |
           test -f "dist/$A"
           ACTUAL=$(sha256sum "dist/$A" | cut -d' ' -f1)
           echo "approved: $D"
           echo "retained: $ACTUAL"
           if [ "$ACTUAL" != "$D" ]; then echo "digest mismatch - refusing to publish" >&2; exit 1; fi
-          # The shipped installer must still be disabled in the exact bytes.
-          python3 - "$A" << 'PY'
-          import sys, zipfile
+          # The shipped gate in the exact bytes must match the approved source commit S.
+          python3 - "$A" "$S" << 'PY'
+          import base64, json, re, subprocess, sys, zipfile
           z = zipfile.ZipFile("dist/" + sys.argv[1])
           code = None
           for n in z.namelist():
               if n.endswith("scripts/selectu5.py"):
                   code = z.read(n).decode("utf-8")
-          assert code is not None and "INSTALL_ENABLED = False" in code, "installer gate is not disabled in this package"
-          print("installer gate disabled in package: confirmed")
+          assert code is not None
+          pkg_gate = re.search(r"^INSTALL_ENABLED = (True|False)", code, re.M).group(1)
+          src = json.loads(subprocess.check_output(
+              ["gh", "api", "repos/" + "${{ github.repository }}" + "/contents/scripts/selectu5.py?ref=" + sys.argv[2]],
+              text=True))
+          src_code = base64.b64decode(src["content"]).decode("utf-8")
+          src_gate = re.search(r"^INSTALL_ENABLED = (True|False)", src_code, re.M).group(1)
+          print(f"installer gate in package: {pkg_gate}; at approved source commit: {src_gate}")
+          assert pkg_gate == src_gate, "shipped gate does not match the approved source commit"
           PY
       - name: Refuse if the release or tag already exists
         env:
